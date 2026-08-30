@@ -1,0 +1,57 @@
+# CMake and build output
+/build*/
+/cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+compile_commands.json
+build.ninja
+.ninja_deps
+.ninja_log
+CMakeUserPresets.json
+
+# Compiled files
+*.o
+*.obj
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+
+# Test, coverage, and sanitizer output
+Testing/
+*.gcda
+*.gcno
+*.gcov
+*.profraw
+*.profdata
+coverage/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+
+# Runtime output
+*.log
+*.pid
+core
+core.*
+*.img
+*.raw
+*.qcow2
+
+# Editor and operating-system files
+.cache/
+.clangd/
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Local working notes and archived material
+/docs/unused/
+/docs/hfsss/AGENT_TEAM.md

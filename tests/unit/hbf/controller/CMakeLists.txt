@@ -1,0 +1,6 @@
+add_executable(openhbx_hbf_controller_unit_test test_controller_components.cpp)
+target_link_libraries(openhbx_hbf_controller_unit_test PRIVATE
+  OpenHBX::hbf_controller openhbf_warnings)
+add_test(NAME openhbx_hbf_controller_unit_test COMMAND openhbx_hbf_controller_unit_test)
+set_tests_properties(openhbx_hbf_controller_unit_test PROPERTIES
+  LABELS "openhbx_s6;openhbx_controller;openhbx_e1")

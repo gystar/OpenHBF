@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OpenHBX S9 Evidence Manifest",
+  "type": "object",
+  "required": ["experiment_id", "evidence_level", "candidate_level", "production_path", "config_hash", "seed", "workload_hash", "oracle", "commands", "artifacts", "spec_locators", "open_gaps"],
+  "properties": {
+    "experiment_id": {"type": "string", "minLength": 1},
+    "evidence_level": {"enum": ["E3", "E4"]},
+    "candidate_level": {"enum": ["none", "E4-extracted-field", "E4-performance"]},
+    "production_path": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "config_hash": {"type": "string", "minLength": 1},
+    "seed": {"type": ["integer", "string"]},
+    "workload_hash": {"type": "string", "minLength": 1},
+    "oracle": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "commands": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "artifacts": {"type": "array", "minItems": 8, "items": {"type": "string"}},
+    "spec_locators": {"type": "array", "items": {"type": "string"}},
+    "open_gaps": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

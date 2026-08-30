@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "release_claim": "verified extracted OCP HBF transaction-level behavior only",
+  "gaps": [
+    {"id":"GAP-001","status":"BLOCKED_SPEC","scope":"UCIe 3.0 Format 6 bit layout and CRC"},
+    {"id":"GAP-002","status":"EXTERNAL_DEPENDENCY","scope":"UCIe credit, FDI/RDI and complete link FSM"},
+    {"id":"GAP-003","status":"EXTERNAL_DEPENDENCY","scope":"AMBA AXI wire-level behavior"},
+    {"id":"GAP-004","status":"BLOCKED_SPEC","scope":"RESETBD_n/RESETSB_n exact in-flight timeline"},
+    {"id":"GAP-005","status":"EXTERNAL_DEPENDENCY","scope":"vendor R1/R2/R3/R5 geometry"},
+    {"id":"GAP-006","status":"EXTERNAL_DEPENDENCY","scope":"vendor numeric resource ceilings"},
+    {"id":"GAP-007","status":"EXTERNAL_DEPENDENCY","scope":"vendor Scratchpad capacity and latency"},
+    {"id":"GAP-008","status":"EXTERNAL_DEPENDENCY","scope":"IEEE 1500 and DA instruction/data semantics"},
+    {"id":"GAP-009","status":"EXTERNAL_DEPENDENCY","scope":"hybrid bonding physical parameters"},
+    {"id":"GAP-010","status":"EXTERNAL_DEPENDENCY","scope":"stock Ramulator Request functional write payload"}
+  ]
+}

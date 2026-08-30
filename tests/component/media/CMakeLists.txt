@@ -1,0 +1,4 @@
+add_executable(openhbx_media_component_test test_media_component.cpp)
+target_link_libraries(openhbx_media_component_test PRIVATE openhbx_media_nand openhbx_warnings)
+add_test(NAME openhbx_media_component_test COMMAND openhbx_media_component_test)
+set_tests_properties(openhbx_media_component_test PROPERTIES LABELS "openhbx_s3;openhbx_media;VER-MEDIA-002;VER-MEDIA-003;VER-MEDIA-004;VER-MEDIA-007")

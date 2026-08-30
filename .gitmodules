@@ -1,0 +1,9 @@
+[submodule "thirdparty/ramulator2"]
+	path = thirdparty/ramulator2
+	url = git@github.com:Xuzzzer/ramulator2.git
+[submodule "thirdparty/hfsss-simulator"]
+	path = thirdparty/hfsss-simulator
+	url = https://github.com/Xuzzzer/hfsss-simulator.git
+[submodule "thirdparty/SimpleSSD-Standalone"]
+	path = thirdparty/SimpleSSD-Standalone
+	url = https://github.com/SimpleSSD/SimpleSSD-Standalone.git

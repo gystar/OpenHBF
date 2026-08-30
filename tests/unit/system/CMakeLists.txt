@@ -1,0 +1,7 @@
+add_executable(openhbx_system_event_kernel_test test_event_kernel.cpp)
+target_link_libraries(openhbx_system_event_kernel_test PRIVATE
+  OpenHBX::system openhbx_warnings)
+add_test(NAME openhbx_system_event_kernel_test
+  COMMAND openhbx_system_event_kernel_test)
+set_tests_properties(openhbx_system_event_kernel_test PROPERTIES
+  LABELS "openhbx_system;openhbx_s1;E1")

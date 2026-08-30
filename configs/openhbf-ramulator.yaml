@@ -1,0 +1,22 @@
+frontend:
+  impl: External
+  clock_ratio: 1
+
+memory_system:
+  impl: OpenHBF
+  clock_ratio: 1
+  tck_picoseconds: 1000
+  channels: 1
+  axi_interfaces_per_channel: 1
+  queue_depth_per_channel: 256
+  transaction_bytes: 64
+  max_pending_dlus_per_channel: 64
+  accumulation_timeout_cycles: 10000
+  core_dies: 1
+  dies_per_core: 1
+  banks_per_die: 2
+  blocks_per_bank: 1024
+  pages_per_block: 256
+  media_max_in_flight: 256
+  seed: 1
+  functional_payload: false

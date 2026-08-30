@@ -1,0 +1,4 @@
+add_executable(openhbx_config_composer_test test_hbf_composer.cpp)
+target_link_libraries(openhbx_config_composer_test PRIVATE openhbx_config openhbx_warnings)
+add_test(NAME openhbx_config_composer_test COMMAND openhbx_config_composer_test)
+set_tests_properties(openhbx_config_composer_test PROPERTIES LABELS "openhbx_s2;openhbx_config")

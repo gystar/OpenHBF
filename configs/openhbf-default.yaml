@@ -1,0 +1,7 @@
+queue_depth: 256
+max_pending_dlus: 64
+read_latency_cycles: 20
+program_latency_cycles: 200
+write_accumulation_timeout_cycles: 10000
+clock_ratio: 1
+transaction_bytes: 64

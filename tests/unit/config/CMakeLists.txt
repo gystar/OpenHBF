@@ -1,0 +1,4 @@
+add_executable(openhbx_config_unit_test test_hbf_config.cpp)
+target_link_libraries(openhbx_config_unit_test PRIVATE openhbx_config openhbx_warnings)
+add_test(NAME openhbx_config_unit_test COMMAND openhbx_config_unit_test)
+set_tests_properties(openhbx_config_unit_test PROPERTIES LABELS "openhbx_s2;openhbx_config")

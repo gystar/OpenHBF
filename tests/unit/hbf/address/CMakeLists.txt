@@ -1,0 +1,6 @@
+add_executable(openhbx_hbf_address_unit_test test_address_topology.cpp)
+target_link_libraries(openhbx_hbf_address_unit_test PRIVATE
+  OpenHBX::hbf_address openhbf_warnings)
+add_test(NAME openhbx_hbf_address_unit_test COMMAND openhbx_hbf_address_unit_test)
+set_tests_properties(openhbx_hbf_address_unit_test PROPERTIES
+  LABELS "openhbx_s4;openhbx_address;openhbx_e1")

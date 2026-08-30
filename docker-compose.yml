@@ -1,0 +1,46 @@
+name: openhbf
+
+services:
+  dev:
+    container_name: OpenHbf-dev
+    image: openhbf-dev:latest
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+      args:
+        # Match the owner of /home/xuzihan/OpenHbf on this host. These values
+        # can still be overridden with HOST_UID and HOST_GID on another host.
+        USER_UID: ${HOST_UID:-1008}
+        USER_GID: ${HOST_GID:-1008}
+
+    init: true
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+
+    environment:
+      CC: gcc
+      CXX: g++
+      # Set to 1 only when pytest, matplotlib and ruff are needed.
+      OPENHBF_INSTALL_RAMULATOR_DEV_DEPS: ${OPENHBF_INSTALL_RAMULATOR_DEV_DEPS:-0}
+
+    volumes:
+      - .:/workspace
+
+    working_dir: /workspace
+    user: developer
+    command: >-
+      bash -c "rm -f /tmp/openhbf-ready
+      && bash .devcontainer/post-create.sh
+      && touch /tmp/openhbf-ready
+      && sleep infinity"
+
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/openhbf-ready"]
+      interval: 2s
+      timeout: 1s
+      retries: 300
+      start_period: 5s
+
+    restart: unless-stopped

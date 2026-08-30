@@ -1,0 +1,19 @@
+product:
+  family: HBF
+  profile: OCP_HBF_0_7
+geometry:
+  source: synthetic
+  host_channels: 4
+  core_dies: 4
+  dies_per_core: 2
+  banks_per_die: 16
+  blocks_per_bank: 1024
+  pages_per_block: 256
+  page_bytes: 4096 B
+components:
+  host: OcpHbfTransactionLevel
+  address: HbfR1R5
+  controller: BaseDieFlash
+  interconnect: HbfTsvBaseline
+  media: NandFlash
+  ras: NandRawRas

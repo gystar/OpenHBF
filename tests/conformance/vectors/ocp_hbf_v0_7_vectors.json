@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "source": "docs/reference/OCP HBF Architecture Specification v0.7.0 FINAL.pdf",
+  "vectors": [
+    {
+      "id": "OCP-5.3-64B",
+      "locator": "Section 5.3, Flash Read",
+      "requirement": "Flash transfers use 64 B address and length granularity",
+      "oracle": "size modulo 64 equals zero"
+    },
+    {
+      "id": "OCP-5.4-DLU",
+      "locator": "Section 5.4, Flash Write",
+      "requirement": "A transfer does not cross a 4 KiB DLU and writes are non-posted",
+      "oracle": "last byte belongs to the starting 4 KiB DLU; no response before terminal"
+    },
+    {
+      "id": "OCP-TABLES-12-13",
+      "locator": "Tables 12 and 13, Command Status",
+      "requirement": "status and data-valid combinations are table driven",
+      "oracle": "covered by the E2 status matrix; no wire encoding claim"
+    },
+    {
+      "id": "OCP-SPEED-GRADE-3",
+      "locator": "Product Description, speed grade 3 bandwidth table",
+      "requirement": "32 GT/s x64 gives 256 GB/s raw per channel and 3072 GB/s effective for 16 channels at 75 percent",
+      "oracle": "integer dimensional calculation equals the extracted values; this does not provide vendor timing"
+    }
+  ]
+}
