@@ -18,58 +18,17 @@
 using namespace openhbx;
 
 namespace {
-constexpr std::uint64_t kChannels = 16;
-constexpr std::uint64_t kAxiPerChannel = 4;
-constexpr std::uint64_t kBanksPerChannel = 16;
-constexpr std::uint64_t kPageBytes = 4096;
-constexpr std::uint64_t kPages = kChannels * kBanksPerChannel;
-
 void print_phase(const char* name, const std::string& detail) {
   std::cout << "[OpenHBX] " << std::left << std::setw(9) << name << detail << '\n'
             << std::flush;
 }
 
 config::ResolvedHbfConfig resolved_config() {
-  const std::string yaml = R"(
-product:
-  family: HBF
-  profile: OCP_HBF_0_7
-geometry:
-  source: synthetic
-  host_channels: 16
-  core_dies: 1
-  dies_per_core: 16
-  banks_per_die: 16
-  blocks_per_bank: 2
-  pages_per_block: 2
-  page_bytes: 4096 B
-components:
-  host: OcpHbfTransactionLevel
-  address: HbfR1R5
-  controller: BaseDieFlash
-  interconnect: HbfTsvBaseline
-  media: NandFlash
-  ras: NandRawRas
-model:
-  source: open-hbx:ocp-hbf-sg3-synthetic-v1
-  tck_picoseconds: 1000
-  completion_capacity: 32768
-  axi_interfaces: 4
-  host_queue_depth_per_interface: 512
-  controller_pending_dlu: 2048
-  controller_queue_depth: 4096
-  controller_cache_buffers_per_bank: 2
-  controller_ecc_credits: 1024
-  pal_max_inflight: 2048
-  media_max_inflight: 2048
-  fabric_active_lanes: 64
-  fabric_spare_lanes: 1
-  fabric_bits_per_lane_cycle: 32
-  fabric_efficiency_ppm: 1000000
-  fabric_arbitration_cycles: 1
-  fabric_propagation_cycles: 1
-)";
-  const auto parsed = config::parse_hbf_yaml(yaml);
+  std::ifstream input(OPENHBX_PRODUCT_CONFIG_PATH);
+  assert(input);
+  std::ostringstream yaml;
+  yaml << input.rdbuf();
+  const auto parsed = config::parse_hbf_yaml(yaml.str());
   assert(parsed);
   auto resolved = config::resolve_hbf_config(parsed.value());
   assert(resolved);
@@ -78,10 +37,12 @@ model:
 
 integration::BridgeRequest request(
     std::uint64_t address, integration::BridgeRequestType type,
+    std::uint64_t page_bytes,
     std::function<void(const SystemCompletion&)> completion) {
   integration::BridgeRequest value;
   value.address = static_cast<std::int64_t>(address);
-  value.size_bytes = type == integration::BridgeRequestType::Write ? 64 : 4096;
+  value.size_bytes = static_cast<std::int32_t>(
+      type == integration::BridgeRequestType::Write ? 64 : page_bytes);
   value.source_id = static_cast<std::int32_t>(address / 64 + 1);
   value.ingress_id = 0;
   value.type = type;
@@ -111,7 +72,7 @@ std::uint64_t page_address(const config::ResolvedHbfConfig& config,
                            std::uint64_t channel, std::uint64_t owned_bank) {
   const std::uint64_t channel_capacity =
       config.geometry().capacity_bytes / config.geometry().host_channels;
-  return channel * channel_capacity + owned_bank * kPageBytes;
+  return channel * channel_capacity + owned_bank * config.geometry().page_bytes;
 }
 
 std::uint64_t percentile(std::vector<std::uint64_t> values, std::uint64_t percent) {
@@ -125,20 +86,31 @@ int main() {
   std::cout << "\n"
             << "OpenHBX HBF Maximum Read Bandwidth\n"
             << "==================================\n";
-  print_phase("CONFIG", "resolved OCP_HBF_0_7 synthetic speed-grade-3 profile");
+  print_phase("CONFIG", "loaded configs/products/ocp_hbf_0_7.yaml");
   auto built = OpenHbxSystem::compose(config);
   assert(built);
   auto& system = *built.system;
   integration::RequestBridge bridge(system);
+  const std::uint64_t channels = config.geometry().host_channels;
+  const std::uint64_t axi_per_channel = config.system_model().axi_interfaces;
+  assert(config.ownership().banks_by_channel.size() == channels);
+  const std::uint64_t banks_per_channel =
+      config.ownership().banks_by_channel.front().size();
+  const std::uint64_t page_bytes = config.geometry().page_bytes;
+  const std::uint64_t pages = channels * banks_per_channel;
+  assert(page_bytes % 64 == 0);
+  const std::uint64_t sectors_per_page = page_bytes / 64;
 
-  print_phase("SETUP", "programming 256 pages across 16 channels and 256 banks");
+  print_phase("SETUP", "programming " + std::to_string(pages) +
+      " pages across " + std::to_string(channels) + " channels");
   std::uint64_t writes = 0;
-  for (std::uint64_t channel = 0; channel < kChannels; ++channel) {
-    for (std::uint64_t bank = 0; bank < kBanksPerChannel; ++bank) {
+  for (std::uint64_t channel = 0; channel < channels; ++channel) {
+    for (std::uint64_t bank = 0; bank < banks_per_channel; ++bank) {
       const auto base = page_address(config, channel, bank);
-      for (std::uint64_t sector = 0; sector < 64; ++sector) {
+      for (std::uint64_t sector = 0; sector < sectors_per_page; ++sector) {
         submit_retry(system, bridge,
             request(base + sector * 64, integration::BridgeRequestType::Write,
+                page_bytes,
                 [&](const SystemCompletion& completion) {
                   assert(completion.command_status == 0 && !completion.data_valid);
                   ++writes;
@@ -146,7 +118,7 @@ int main() {
       }
     }
   }
-  tick_until(system, [&] { return writes == kPages * 64; });
+  tick_until(system, [&] { return writes == pages * sectors_per_page; });
 
   print_phase("RESET", "clearing volatile controller state before measurement");
   assert(system.reset());
@@ -158,30 +130,30 @@ int main() {
   const std::uint64_t start = system.cycle().value();
   std::uint64_t reads = 0;
   std::vector<std::uint64_t> latencies;
-  latencies.reserve(kPages);
-  for (std::uint64_t channel = 0; channel < kChannels; ++channel) {
-    for (std::uint64_t bank = 0; bank < kBanksPerChannel; ++bank) {
+  latencies.reserve(pages);
+  for (std::uint64_t channel = 0; channel < channels; ++channel) {
+    for (std::uint64_t bank = 0; bank < banks_per_channel; ++bank) {
       const auto address = page_address(config, channel, bank);
       const auto submitted = system.cycle().value();
       submit_retry(system, bridge,
-          request(address, integration::BridgeRequestType::Read,
+          request(address, integration::BridgeRequestType::Read, page_bytes,
               [&, submitted](const SystemCompletion& completion) {
                 assert(completion.command_status == 0 && completion.data_valid &&
-                       completion.payload.size() == kPageBytes);
+                       completion.payload.size() == page_bytes);
                 for (const auto byte : completion.payload.bytes()) assert(byte == 0xa5);
                 latencies.push_back(completion.completed_at.value() - submitted);
                 ++reads;
               }));
     }
   }
-  tick_until(system, [&] { return reads == kPages; });
+  tick_until(system, [&] { return reads == pages; });
   const std::uint64_t end = system.cycle().value();
   const auto after = system.stats();
 
-  const std::uint64_t bytes = kPages * kPageBytes;
+  const std::uint64_t bytes = pages * page_bytes;
   const std::uint64_t cycles = end - start;
   assert(cycles != 0 && after.outstanding == 0);
-  assert(after.read_completed_requests - before.read_completed_requests == kPages);
+  assert(after.read_completed_requests - before.read_completed_requests == pages);
   assert(after.read_completed_bytes - before.read_completed_bytes == bytes);
   assert(after.failed_requests == before.failed_requests);
 
@@ -194,7 +166,7 @@ int main() {
       model.fabric_bits_per_lane_cycle * model.fabric_efficiency_ppm /
       1000000.0 / 8.0 * 1000.0 / model.tck_picoseconds;
   const double aggregate_raw_ceiling =
-      per_channel_raw_gigabytes_per_second * kChannels;
+      per_channel_raw_gigabytes_per_second * channels;
   constexpr double kOcpUserTargetGigabytesPerSecond = 3072.0;
   const double raw_utilization = gigabytes_per_second / aggregate_raw_ceiling;
   const double ocp_target_ratio =
@@ -215,10 +187,10 @@ int main() {
             << "  evidence:                   E4-model-resource candidate\n"
             << "  config_hash:                " << config.canonical_hash() << "\n"
             << "\ntopology:\n"
-            << "  host_channels:              " << kChannels << "\n"
-            << "  axi_interfaces_per_channel: " << kAxiPerChannel << "\n"
-            << "  banks_per_channel:          " << kBanksPerChannel << "\n"
-            << "  page_size:                  " << kPageBytes << " B\n"
+            << "  host_channels:              " << channels << "\n"
+            << "  axi_interfaces_per_channel: " << axi_per_channel << "\n"
+            << "  banks_per_channel:          " << banks_per_channel << "\n"
+            << "  page_size:                  " << page_bytes << " B\n"
             << "\nlink_model:\n"
             << "  clock_period:               " << model.tck_picoseconds << " ps\n"
             << "  active_lanes_per_channel:   " << model.fabric_active_lanes << "\n"
@@ -247,7 +219,7 @@ int main() {
             << "  p95:                        " << latency_p95 << "\n"
             << "  max:                        " << latency_max << "\n"
             << "\nchecks:\n"
-            << "  completed_requests:         PASS (" << reads << '/' << kPages << ")\n"
+            << "  completed_requests:         PASS (" << reads << '/' << pages << ")\n"
             << "  completed_bytes:            PASS (" << bytes << " B)\n"
             << "  payload_integrity:          PASS\n"
             << "  outstanding_after_drain:    PASS (0)\n"
@@ -262,9 +234,9 @@ int main() {
        << "  \"experiment_id\": \"EXP-PERF-HBF-MAX-READ\",\n"
        << "  \"candidate_evidence_level\": \"E4-model-resource\",\n"
        << "  \"config_hash\": \"" << config.canonical_hash() << "\",\n"
-       << "  \"host_channels\": " << kChannels << ",\n"
-       << "  \"axi_interfaces_per_channel\": " << kAxiPerChannel << ",\n"
-       << "  \"banks_per_channel\": " << kBanksPerChannel << ",\n"
+       << "  \"host_channels\": " << channels << ",\n"
+       << "  \"axi_interfaces_per_channel\": " << axi_per_channel << ",\n"
+       << "  \"banks_per_channel\": " << banks_per_channel << ",\n"
        << "  \"measurement_requests\": " << reads << ",\n"
        << "  \"measurement_bytes\": " << bytes << ",\n"
        << "  \"measurement_cycles\": " << cycles << ",\n"

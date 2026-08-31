@@ -3,12 +3,12 @@ product:
   profile: OCP_HBF_0_7
 geometry:
   source: synthetic
-  host_channels: 4
-  core_dies: 4
-  dies_per_core: 2
+  host_channels: 16
+  core_dies: 1
+  dies_per_core: 16
   banks_per_die: 16
-  blocks_per_bank: 1024
-  pages_per_block: 256
+  blocks_per_bank: 2
+  pages_per_block: 2
   page_bytes: 4096 B
 components:
   host: OcpHbfTransactionLevel
@@ -17,3 +17,21 @@ components:
   interconnect: HbfTsvBaseline
   media: NandFlash
   ras: NandRawRas
+model:
+  source: open-hbx:ocp-hbf-sg3-synthetic-v1
+  tck_picoseconds: 1000
+  completion_capacity: 32768
+  axi_interfaces: 4
+  host_queue_depth_per_interface: 512
+  controller_pending_dlu: 2048
+  controller_queue_depth: 4096
+  controller_cache_buffers_per_bank: 2
+  controller_ecc_credits: 1024
+  pal_max_inflight: 2048
+  media_max_inflight: 2048
+  fabric_active_lanes: 64
+  fabric_spare_lanes: 1
+  fabric_bits_per_lane_cycle: 32
+  fabric_efficiency_ppm: 1000000
+  fabric_arbitration_cycles: 1
+  fabric_propagation_cycles: 1

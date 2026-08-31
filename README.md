@@ -195,10 +195,10 @@ make run
 一次完整运行的摘要示例：
 
 ```text
-config_hash=openhbx-fnv1a64-v1:9b818c32e956549b accepted=65 completed=65 cycles=623
+config_hash=openhbx-fnv1a64-v1:74b02c1c73517cc2 accepted=65 completed=65 cycles=99
 ```
 
-`accepted=completed=65`说明所有已接受请求都产生了终态，没有遗留请求；`cycles=623`是本次工作负载使用的模拟周期数；`config_hash`用于确认复现实验时采用相同的解析后配置。
+`accepted=completed=65`说明所有已接受请求都产生了终态，没有遗留请求；`cycles=99`是本次工作负载使用的模拟周期数；`config_hash`与最大带宽实验一致，说明两者读取了同一个产品配置。
 
 ## 7. 日志与输出目录
 

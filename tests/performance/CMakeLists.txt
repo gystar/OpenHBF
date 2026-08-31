@@ -14,6 +14,8 @@ add_executable(openhbx_hbf_max_read_bandwidth_test
   test_hbf_max_read_bandwidth.cpp)
 target_link_libraries(openhbx_hbf_max_read_bandwidth_test PRIVATE
   openhbx openhbx_warnings)
+target_compile_definitions(openhbx_hbf_max_read_bandwidth_test PRIVATE
+  OPENHBX_PRODUCT_CONFIG_PATH="${CMAKE_SOURCE_DIR}/configs/products/ocp_hbf_0_7.yaml")
 add_test(NAME openhbx_hbf_max_read_bandwidth_test
   COMMAND openhbx_hbf_max_read_bandwidth_test)
 set_tests_properties(openhbx_hbf_max_read_bandwidth_test PROPERTIES
