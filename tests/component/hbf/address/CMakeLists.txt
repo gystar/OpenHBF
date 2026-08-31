@@ -1,6 +1,6 @@
 add_executable(openhbx_hbf_address_component_test test_address_component.cpp)
 target_link_libraries(openhbx_hbf_address_component_test PRIVATE
-  OpenHBX::hbf_address openhbf_warnings)
+  OpenHBX::hbf_address openhbx_warnings)
 add_test(NAME openhbx_hbf_address_component_test COMMAND openhbx_hbf_address_component_test)
 set_tests_properties(openhbx_hbf_address_component_test PROPERTIES
   LABELS "openhbx_s4;openhbx_address;openhbx_e2")

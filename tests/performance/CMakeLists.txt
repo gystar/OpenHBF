@@ -13,7 +13,7 @@ set_tests_properties(openhbx_flash_read_bandwidth_test PROPERTIES
 add_executable(openhbx_hbf_max_read_bandwidth_test
   test_hbf_max_read_bandwidth.cpp)
 target_link_libraries(openhbx_hbf_max_read_bandwidth_test PRIVATE
-  openhbx openhbf_warnings)
+  openhbx openhbx_warnings)
 add_test(NAME openhbx_hbf_max_read_bandwidth_test
   COMMAND openhbx_hbf_max_read_bandwidth_test)
 set_tests_properties(openhbx_hbf_max_read_bandwidth_test PROPERTIES

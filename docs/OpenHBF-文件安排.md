@@ -71,7 +71,7 @@ tests/unit/system/
 tests/integration/system/
 ```
 
-02拥有cycle、EventQueue、token/generation、RequestBridge和Ramulator callback lifetime；不实现HBF协议或Media行为。
+02拥有cycle、EventQueue、token/generation、结构化event journal、RequestBridge和Ramulator callback lifetime；不实现HBF协议或Media行为。日志专项说明见[`OPENHBX_LOGGING_AND_OBSERVABILITY.md`](OPENHBX_LOGGING_AND_OBSERVABILITY.md)。
 
 ### 4.3 03 Host协议
 

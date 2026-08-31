@@ -9,6 +9,6 @@ add_library(openhbx_interconnect STATIC
   ${PROJECT_SOURCE_DIR}/include/openhbx/interconnect/fabric_profile.h
   ${PROJECT_SOURCE_DIR}/include/openhbx/interconnect/tsv_repair.h)
 target_include_directories(openhbx_interconnect PUBLIC ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(openhbx_interconnect PUBLIC openhbx_common PRIVATE openhbf_warnings)
+target_link_libraries(openhbx_interconnect PUBLIC openhbx_common PRIVATE openhbx_warnings)
 set_property(TARGET openhbx_interconnect PROPERTY OPENHBX_ROLE PRODUCTION_COMPONENT)
 add_library(OpenHBX::interconnect ALIAS openhbx_interconnect)

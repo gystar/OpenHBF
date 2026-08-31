@@ -4,6 +4,7 @@ add_library(openhbx_system
   event_queue.cpp
   direct_driver.cpp
   open_hbx_system.cpp
+  observability.cpp
   system_lifecycle.cpp
   system_skeleton.cpp
 )

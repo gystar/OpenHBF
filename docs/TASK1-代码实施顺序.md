@@ -9,7 +9,7 @@
 
 本文把8模块设计转换为可串行实施的代码阶段。Agent一次只执行一个已解锁阶段；当前阶段通过规定门禁并留下交接记录后，下一阶段才能开始。禁止多个Agent同时定义公共类型、EventQueue、地址语义或跨模块端口。
 
-正式验证统一遵循[`实验与测试执行规范.md`](实验与测试执行规范.md)：只在Docker中通过CMake/CTest执行；构建进入`build/tests/<profile>`，证据进入`build/artifacts/<suite>`。
+正式验证统一遵循[`实验与测试执行规范.md`](实验与测试执行规范.md)：只在Docker中通过CMake/CTest执行；日常构建进入`build/tests/`，隔离变体进入`build/tests-<profile>/`，证据进入`build/artifacts/<suite>`。
 
 实施遵循以下不变量：
 
@@ -68,9 +68,9 @@ S6和S7表中的artifact是其阶段结束时生成的历史组件E1/E2 binary�
 - 建立对应`include/openhbx/...`和`tests/unit|component|system|conformance/...`；
 - 每个生产target显式列source，统一链接warning target；
 - 旧target继续可构建但标为legacy，不进入新`OpenHBX`生产聚合target；
-- 增加只检查公开头和target链接关系的build-contract测试。
+- 增加只检查公开头和target链接关系的public-api测试。
 
-门禁：Docker内configure、build和`ctest -L openhbx_build_contract`通过；源码树无生成物。
+门禁：Docker内configure、build和`ctest -L openhbx_public_api`通过；源码树无生成物。
 
 ### S1 公共契约与EventKernel
 

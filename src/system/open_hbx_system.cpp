@@ -171,6 +171,8 @@ OpenHbxSystem::build_unpublished(
 
 OpenHbxSystem::OpenHbxSystem(config::ResolvedHbfConfig config)
     : config_(std::move(config)),
+      journal_(256, LogLevel::Warn),
+      events_(&journal_),
       completions_(static_cast<std::size_t>(config_.system_model().completion_capacity)),
       lifecycle_(events_, completions_) {}
 
@@ -527,7 +529,14 @@ AdmissionResult OpenHbxSystem::try_submit(SystemRequest request) {
               "System latency cycle counter overflow");
         }
         ++callbacks_;
-        try { callback(std::move(result)); } catch (...) { ++callback_errors_; }
+        try {
+          callback(std::move(result));
+        } catch (...) {
+          ++callback_errors_;
+          journal_.observe({LogLevel::Error, cycle(), EventPhase::FinalDelivery,
+              0, false, completion.generation, "open_hbx_system", "callback",
+              "final_delivery", completion.token, "exception", 0});
+        }
       });
   if (registered.code != AdmissionCode::Accepted)
     throw std::logic_error("completion capacity changed during single-threaded admission");

@@ -5,6 +5,23 @@
 #include <tuple>
 
 namespace openhbx {
+namespace {
+const char* schedule_result(ScheduleCode code) {
+  switch (code) {
+    case ScheduleCode::Accepted: return "accepted";
+    case ScheduleCode::PastCycle: return "past_cycle";
+    case ScheduleCode::ClosedPhase: return "closed_phase";
+    case ScheduleCode::UnknownHandler: return "unknown_handler";
+    case ScheduleCode::SequenceExhausted: return "sequence_exhausted";
+  }
+  return "unknown";
+}
+
+Token payload_token(const EventPayload& payload) {
+  const auto* token = std::get_if<Token>(&payload);
+  return token == nullptr ? Token{} : *token;
+}
+}  // namespace
 
 bool EventQueue::Later::operator()(const Event& lhs, const Event& rhs) const {
   return std::tie(lhs.view.due, lhs.view.phase, lhs.view.sequence) >
@@ -17,14 +34,27 @@ bool EventQueue::register_handler(HandlerId id, Handler handler) {
 }
 
 ScheduleCode EventQueue::schedule(EventSpec& spec, Cycle now, EventPhase current_phase) {
-  if (spec.due < now) return ScheduleCode::PastCycle;
-  if (spec.due == now && spec.phase <= current_phase) return ScheduleCode::ClosedPhase;
-  if (handlers_.find(spec.handler.value()) == handlers_.end()) return ScheduleCode::UnknownHandler;
-  if (next_sequence_ == std::numeric_limits<std::uint64_t>::max()) return ScheduleCode::SequenceExhausted;
+  ScheduleCode code = ScheduleCode::Accepted;
+  if (spec.due < now) code = ScheduleCode::PastCycle;
+  else if (spec.due == now && spec.phase <= current_phase) code = ScheduleCode::ClosedPhase;
+  else if (handlers_.find(spec.handler.value()) == handlers_.end()) code = ScheduleCode::UnknownHandler;
+  else if (next_sequence_ == std::numeric_limits<std::uint64_t>::max()) code = ScheduleCode::SequenceExhausted;
+  if (code != ScheduleCode::Accepted) {
+    if (observer_) observer_->observe({LogLevel::Warn, now, current_phase, 0,
+        false, spec.generation, "event_queue", "schedule", "rejected",
+        payload_token(spec.payload), schedule_result(code), spec.handler.value()});
+    return code;
+  }
   Event event{{spec.due, spec.phase, next_sequence_++, spec.handler, spec.generation},
               std::move(spec.payload)};
+  const EventView observed_view = event.view;
+  const Token observed_token = payload_token(event.payload);
   events_.push(std::move(event));
   ++scheduled_;
+  if (observer_) observer_->observe({LogLevel::Trace, observed_view.due,
+      observed_view.phase, observed_view.sequence, true, observed_view.generation,
+      "event_queue", "schedule", "queued", observed_token,
+      "accepted", observed_view.handler.value()});
   return ScheduleCode::Accepted;
 }
 
@@ -37,11 +67,21 @@ std::size_t EventQueue::dispatch_due(Cycle now, EventPhase phase, Generation gen
     events_.pop();
     if (event.view.generation != generation) {
       ++stale_;
+      if (observer_) observer_->observe({LogLevel::Warn, now, phase,
+          event.view.sequence, true, event.view.generation, "event_queue",
+          "dispatch", "generation_check", payload_token(event.payload),
+          "stale", event.view.handler.value()});
       continue;
     }
+    const EventView observed_view = event.view;
+    const Token observed_token = payload_token(event.payload);
     handlers_.at(event.view.handler.value())(std::move(event.payload));
     ++dispatched_;
     ++count;
+    if (observer_) observer_->observe({LogLevel::Trace, now, phase,
+        observed_view.sequence, true, observed_view.generation, "event_queue",
+        "dispatch", "handler", observed_token, "delivered",
+        observed_view.handler.value()});
   }
   return count;
 }

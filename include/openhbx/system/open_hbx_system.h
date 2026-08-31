@@ -15,6 +15,7 @@
 #include "openhbx/media/types.h"
 #include "openhbx/system/system_lifecycle.h"
 #include "openhbx/system/system_stats.h"
+#include "openhbx/system/observability.h"
 
 namespace openhbx {
 
@@ -82,6 +83,9 @@ class OpenHbxSystem {
   std::optional<AddressDebugSnapshot> debug_address_snapshot(
       std::uint64_t flat_address_bytes) const;
   OpenHbxSystemStats stats() const;
+  EventJournalSnapshot observed_events() const { return journal_.snapshot(); }
+  void set_log_level(LogLevel level) noexcept { journal_.set_minimum_level(level); }
+  void set_log_sink(EventJournal::Sink sink) { journal_.set_sink(std::move(sink)); }
   Cycle cycle() const noexcept;
   Generation generation() const noexcept;
   Token allocate_request_token() noexcept;
@@ -108,6 +112,7 @@ class OpenHbxSystem {
 
   config::ResolvedHbfConfig config_;
   std::unique_ptr<config::ProductAssembly> component_assembly_;
+  EventJournal journal_;
   EventQueue events_;
   CompletionRegistry completions_;
   SystemLifecycle lifecycle_;

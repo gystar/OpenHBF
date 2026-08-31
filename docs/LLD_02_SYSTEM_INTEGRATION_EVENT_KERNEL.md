@@ -169,6 +169,7 @@ cycle = checked_add(cycle, 1)
 |---|---|---|---|---|---|---|---|---|
 | `include/openhbx/system/host_request.h`、`src/system/host_request.cpp` | 新增/迁移 | System | canonical request/completion | value types | common | RAM-004/006 | RAM-T04/T06 | PLANNED |
 | `include/openhbx/system/event_queue.h`、`src/system/event_queue.cpp` | 新增/迁移 | System | deterministic events | `EventQueue` | common event | SYS-001/002/004 | SYS-T01/T02/T04 | PLANNED |
+| `include/openhbx/system/observability.h`、`src/system/observability.cpp` | 新增 | System | structured event journal与确定性renderer | `ObservedEvent`/`EventJournal` | strong types | SYS-002/008 | SYS-T02/T08 | PARTIAL |
 | `include/openhbx/system/completion_registry.h`、`src/system/completion_registry.cpp` | 新增/迁移 | System | exactly once | `CompletionRegistry` | host request | SYS-003/007 | SYS-T03/T07 | PLANNED |
 | `include/openhbx/system/system_lifecycle.h`、`src/system/system_lifecycle.cpp` | 新增 | System | reset/drain/mode | lifecycle | module ports | SYS-004/005 | SYS-T04/T05 | PLANNED |
 | `include/openhbx/system/clock_domain.h`、`src/system/clock_domain.cpp` | 新增 | System | integer ratios | registry | checked math | SYS-006 | SYS-T06 | PLANNED |

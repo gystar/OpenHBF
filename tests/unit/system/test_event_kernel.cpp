@@ -12,6 +12,7 @@
 #include "openhbx/system/clock_domain.h"
 #include "openhbx/system/completion_registry.h"
 #include "openhbx/system/event_queue.h"
+#include "openhbx/system/observability.h"
 #include "openhbx/system/system_lifecycle.h"
 
 namespace {
@@ -47,6 +48,51 @@ void test_event_order_and_rejection() {
   queue.dispatch_due(Cycle(4), EventPhase::FinalDelivery, Generation(1));
   CHECK((seen == std::vector<std::uint64_t>{1, 2, 3}));
   CHECK(queue.snapshot().scheduled == 3 && queue.snapshot().dispatched == 3);
+}
+
+void test_structured_observability() {
+  using namespace openhbx;
+  EventJournal journal(2, LogLevel::Trace);
+  std::vector<std::string> rendered;
+  journal.set_sink([&](const ObservedEvent& event) {
+    rendered.push_back(render_event_text(event));
+  });
+  EventQueue queue(&journal);
+  CHECK(queue.register_handler(HandlerId(8), [](EventPayload) {}));
+  EventSpec accepted{Cycle(2), EventPhase::MediaCommit, HandlerId(8),
+                     Generation(3), Token(17)};
+  EventSpec rejected{Cycle(0), EventPhase::Reset, HandlerId(8),
+                     Generation(3), Token(18)};
+  CHECK(queue.schedule(accepted, Cycle(0), EventPhase::Reset) ==
+        ScheduleCode::Accepted);
+  CHECK(queue.schedule(rejected, Cycle(0), EventPhase::Reset) ==
+        ScheduleCode::ClosedPhase);
+  CHECK(queue.dispatch_due(Cycle(2), EventPhase::MediaCommit,
+                           Generation(3)) == 1);
+
+  const auto snapshot = journal.snapshot();
+  CHECK(snapshot.observed == 3);
+  CHECK(snapshot.events.size() == 2);
+  CHECK(snapshot.dropped == 1);
+  CHECK(snapshot.events[0].sequence == 0);
+  CHECK(snapshot.events[0].token == Token(17));
+  CHECK(snapshot.events[1].result == "closed_phase");
+  CHECK(rendered.size() == 2);
+  CHECK(rendered[0].find("cycle=2 phase=media_commit sequence=0") !=
+        std::string::npos);
+  const auto json = render_event_jsonl(snapshot.events[1]);
+  CHECK(json.find("\"module\":\"event_queue\"") != std::string::npos);
+  CHECK(json.find("\"result\":\"closed_phase\"") != std::string::npos);
+
+  EventJournal filtered(4, LogLevel::Warn);
+  filtered.observe({LogLevel::Trace, Cycle(1), EventPhase::Reset, 0, false,
+                    Generation(1), "test", "trace", "stage", Token{}, "ok", 0});
+  filtered.observe({LogLevel::Error, Cycle(1), EventPhase::Reset, 0, false,
+                    Generation(1), "test", "error", "stage", Token{}, "failed", 0});
+  const auto filtered_snapshot = filtered.snapshot();
+  CHECK(filtered_snapshot.observed == 2);
+  CHECK(filtered_snapshot.filtered == 1);
+  CHECK(filtered_snapshot.events.size() == 1);
 }
 
 void test_completion_and_reset() {
@@ -146,6 +192,7 @@ void test_clock_and_drain_snapshot() {
 int main() {
   test_common_contracts();
   test_event_order_and_rejection();
+  test_structured_observability();
   test_completion_and_reset();
   test_final_delivery_generation_rebase();
   test_clock_and_drain_snapshot();

@@ -1,4 +1,4 @@
-experiment_id: EXP-S0-BUILD-CONTRACT
+experiment_id: EXP-S0-PUBLIC-API
 requirement: TASK1-S0
 objective: Verify all OpenHBX public skeleton headers compile and the production aggregate links no legacy OpenHBF target.
 evidence_level: E0
@@ -15,5 +15,5 @@ oracle: CMake configure rejects direct legacy aggregate links and CTest executab
 budget:
   tests: 1
   host_timeout_seconds: 60
-artifacts: build/artifacts/stages/s0/EXP-S0-BUILD-CONTRACT/<run-id>/
-replay: docker compose exec -T dev ctest --test-dir build/tests/default -L openhbx_build_contract --output-on-failure
+artifacts: build/artifacts/stages/s0/EXP-S0-PUBLIC-API/<run-id>/
+replay: docker compose exec -T dev ctest --test-dir build/tests -L openhbx_public_api --output-on-failure

@@ -1,4 +1,0 @@
-add_executable(openhbf_media_test test_media.cpp)
-target_link_libraries(openhbf_media_test PRIVATE openhbf_media openhbf_warnings)
-add_test(NAME openhbf_media_test COMMAND openhbf_media_test)
-set_tests_properties(openhbf_media_test PROPERTIES LABELS "openhbf_media")

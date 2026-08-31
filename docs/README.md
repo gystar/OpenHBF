@@ -15,6 +15,7 @@ HBF产品行为以`reference/OCP HBF Architecture Specification v0.7.0 FINAL.pdf
 7. [`TRACEABILITY_MATRIX.md`](TRACEABILITY_MATRIX.md)：核对规范要求到设计和Test ID的闭环。
 8. [`OpenHBF-文件安排.md`](OpenHBF-文件安排.md)：核对生产与测试路径的唯一owner。
 9. [`TASK1-代码实施顺序.md`](TASK1-代码实施顺序.md)：按S0至S9串行实现、验证和Agent交接。
+10. [`OPENHBX_LOGGING_AND_OBSERVABILITY.md`](OPENHBX_LOGGING_AND_OBSERVABILITY.md)：日志、结构化事件、Ramulator调研与artifact边界。
 
 所有HLD/LLD均在元数据中声明自身`docs/...`位置，并在正文列出计划中的公开头文件、生产实现、测试、配置和artifact根。路径表示设计落点，不等同于文件已实现。
 

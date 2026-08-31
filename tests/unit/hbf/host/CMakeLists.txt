@@ -1,6 +1,6 @@
 add_executable(openhbx_hbf_host_unit_test test_host_protocol_components.cpp)
 target_link_libraries(openhbx_hbf_host_unit_test PRIVATE
-  OpenHBX::hbf_host openhbf_warnings)
+  OpenHBX::hbf_host openhbx_warnings)
 add_test(NAME openhbx_hbf_host_unit_test COMMAND openhbx_hbf_host_unit_test)
 set_tests_properties(openhbx_hbf_host_unit_test PROPERTIES
   LABELS "openhbx_s7;openhbx_host;openhbx_e1")

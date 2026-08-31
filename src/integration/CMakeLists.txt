@@ -1,17 +1,3 @@
-add_library(openhbf_integration
-  host_request.cpp
-  completion_registry.cpp
-  open_hbf_config.cpp
-  open_hbf_system.cpp
-  direct_runner.cpp
-)
-
-target_include_directories(openhbf_integration
-  PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
-target_link_libraries(openhbf_integration PUBLIC openhbf_common)
-target_link_libraries(openhbf_integration PRIVATE openhbf_warnings)
-add_library(OpenHBF::integration ALIAS openhbf_integration)
-
 add_library(openhbx_integration
   integration_skeleton.cpp
   nand_media_port.cpp

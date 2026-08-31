@@ -10,6 +10,6 @@ add_library(openhbx_hbf_controller STATIC
 target_include_directories(openhbx_hbf_controller PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(openhbx_hbf_controller PUBLIC
   openhbx_common openhbx_system openhbx_hbf_address openhbx_pal)
-target_link_libraries(openhbx_hbf_controller PRIVATE openhbf_warnings)
+target_link_libraries(openhbx_hbf_controller PRIVATE openhbx_warnings)
 set_property(TARGET openhbx_hbf_controller PROPERTY OPENHBX_ROLE PRODUCTION_COMPONENT)
 add_library(OpenHBX::hbf_controller ALIAS openhbx_hbf_controller)

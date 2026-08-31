@@ -1,7 +1,7 @@
 add_executable(openhbx_hbf_controller_component_test test_base_die_controller.cpp)
 target_link_libraries(openhbx_hbf_controller_component_test PRIVATE
   OpenHBX::hbf_controller OpenHBX::pal OpenHBX::interconnect OpenHBX::hbf_address
-  OpenHBX::system openhbf_warnings)
+  OpenHBX::system openhbx_warnings)
 add_test(NAME openhbx_hbf_controller_component_test COMMAND openhbx_hbf_controller_component_test)
 set_tests_properties(openhbx_hbf_controller_component_test PROPERTIES
   LABELS "openhbx_s6;openhbx_controller;openhbx_e2")

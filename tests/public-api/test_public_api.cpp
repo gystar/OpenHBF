@@ -9,11 +9,14 @@
 #include "openhbx/pal/build_contract.h"
 #include "openhbx/ras/build_contract.h"
 #include "openhbx/system/build_contract.h"
+#include "openhbx/system/observability.h"
 
 #include <array>
 #include <string_view>
 
 int main() {
+  openhbx::EventJournal observability_contract;
+  if (observability_contract.snapshot().capacity == 0) return 1;
   const std::array<std::string_view, 11> domains = {
       openhbx::config::build_contract_domain(),
       openhbx::common::build_contract_domain(),

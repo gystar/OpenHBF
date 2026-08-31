@@ -11,13 +11,10 @@
 
 #include "openhbx/common/payload_handle.h"
 #include "openhbx/common/strong_types.h"
+#include "openhbx/system/observability.h"
 
 namespace openhbx {
 
-enum class EventPhase : std::uint8_t {
-  Reset, MediaCommit, ControllerCompletion, Interconnect, CreditReturn,
-  ControllerSchedule, HostSchedule, FinalDelivery
-};
 enum class ScheduleCode { Accepted, PastCycle, ClosedPhase, UnknownHandler, SequenceExhausted };
 using EventPayload = std::variant<std::monostate, std::uint64_t, Token, PayloadHandle>;
 
@@ -28,6 +25,8 @@ struct EventQueueSnapshot { std::size_t queued; std::uint64_t scheduled; std::ui
 class EventQueue {
  public:
   using Handler = std::function<void(EventPayload)>;
+  explicit EventQueue(EventObserver* observer = nullptr) : observer_(observer) {}
+  void set_observer(EventObserver* observer) noexcept { observer_ = observer; }
   bool register_handler(HandlerId id, Handler handler);
   ScheduleCode schedule(EventSpec& spec, Cycle now, EventPhase current_phase);
   std::size_t dispatch_due(Cycle now, EventPhase phase, Generation generation);
@@ -43,6 +42,7 @@ class EventQueue {
   std::priority_queue<Event, std::vector<Event>, Later> events_;
   std::map<std::uint64_t, Handler> handlers_;
   std::uint64_t next_sequence_{0}, scheduled_{0}, dispatched_{0}, stale_{0};
+  EventObserver* observer_{nullptr};
 };
 
 }  // namespace openhbx
