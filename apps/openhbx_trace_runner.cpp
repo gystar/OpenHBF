@@ -1,3 +1,4 @@
+#include <array>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -43,9 +44,29 @@ int main(int argc, char** argv) {
     std::ifstream trace(argv[2]);
     if (!trace) throw std::runtime_error("cannot open trace");
     std::uint64_t accepted = 0, completed = 0, source = 0;
+    std::uint64_t measurement_start_cycle = built.system->cycle().value();
+    std::uint64_t precondition_requests = 0;
+    std::array<std::uint64_t, 16> command_status_counts{};
     std::string line;
     while (std::getline(trace, line)) {
       if (line.empty() || line.front() == '#') continue;
+      if (line == "RESET") {
+        std::uint64_t wait_cycles = 0;
+        while (accepted != completed && wait_cycles++ < 10000000)
+          built.system->tick();
+        if (accepted != completed)
+          throw std::runtime_error("precondition completion timeout");
+        precondition_requests += accepted;
+        if (!built.system->reset()) throw std::runtime_error("precondition reset rejected");
+        const auto target_generation = built.system->generation().value() + 1;
+        while (built.system->generation().value() != target_generation)
+          built.system->tick();
+        accepted = 0;
+        completed = 0;
+        command_status_counts.fill(0);
+        measurement_start_cycle = built.system->cycle().value();
+        continue;
+      }
       std::istringstream parser(line);
       char operation = 0;
       std::string address_text;
@@ -71,9 +92,11 @@ int main(int argc, char** argv) {
                                       static_cast<std::uint8_t>(pattern)));
       request.completion = [&](const openhbx::SystemCompletion& completion) {
         ++completed;
+        const auto status = static_cast<unsigned>(completion.command_status);
+        if (status < command_status_counts.size()) ++command_status_counts[status];
         std::cout << completion.token.value() << ' '
                   << completion.completed_at.value() << ' '
-                  << static_cast<unsigned>(completion.command_status) << ' '
+                  << status << ' '
                   << (completion.data_valid ? completion.payload.size() : 0) << '\n';
       };
       for (;;) {
@@ -96,14 +119,39 @@ int main(int argc, char** argv) {
       std::ofstream summary(summary_path);
       if (!summary) throw std::runtime_error("cannot write run summary");
       summary << "{\n"
+              << "  \"schema_version\": 1,\n"
               << "  \"config_hash\": \""
               << built.system->resolved_config().canonical_hash() << "\",\n"
+              << "  \"host_channels\": "
+              << built.system->resolved_config().geometry().host_channels << ",\n"
+              << "  \"banks_per_channel\": "
+              << built.system->resolved_config().ownership().banks_by_channel.front().size()
+              << ",\n"
+              << "  \"capacity_bytes\": "
+              << built.system->resolved_config().geometry().capacity_bytes << ",\n"
+              << "  \"tck_picoseconds\": "
+              << built.system->resolved_config().system_model().tck_picoseconds
+              << ",\n"
               << "  \"drained\": true,\n"
-              << "  \"cycle\": " << snapshot.cycle.value() << ",\n"
+              << "  \"cycle\": "
+              << snapshot.cycle.value() - measurement_start_cycle << ",\n"
+              << "  \"absolute_cycle\": " << snapshot.cycle.value() << ",\n"
+              << "  \"precondition_requests\": " << precondition_requests << ",\n"
               << "  \"generation\": " << snapshot.generation.value() << ",\n"
-              << "  \"accepted\": " << snapshot.completions.accepted << ",\n"
-              << "  \"terminal\": " << snapshot.completions.terminal << ",\n"
+              << "  \"accepted\": " << accepted << ",\n"
+              << "  \"terminal\": " << completed << ",\n"
+              << "  \"absolute_accepted\": " << snapshot.completions.accepted << ",\n"
+              << "  \"absolute_terminal\": " << snapshot.completions.terminal << ",\n"
               << "  \"outstanding\": " << snapshot.completions.outstanding << ",\n"
+              << "  \"command_status_counts\": {";
+      bool first_status = true;
+      for (std::size_t status = 0; status < command_status_counts.size(); ++status) {
+        if (command_status_counts[status] == 0) continue;
+        if (!first_status) summary << ", ";
+        summary << "\"" << status << "\": " << command_status_counts[status];
+        first_status = false;
+      }
+      summary << "},\n"
               << "  \"events\": {\"queued\": " << snapshot.events.queued
               << ", \"scheduled\": " << snapshot.events.scheduled
               << ", \"dispatched\": " << snapshot.events.dispatched
@@ -136,7 +184,8 @@ int main(int argc, char** argv) {
     }
     std::cerr << "config_hash=" << built.system->resolved_config().canonical_hash()
               << " accepted=" << accepted << " completed=" << completed
-              << " cycles=" << built.system->cycle().value() << '\n';
+              << " cycles="
+              << built.system->cycle().value() - measurement_start_cycle << '\n';
   } catch (const std::exception& error) {
     std::cerr << "error: " << error.what() << '\n';
     return 1;

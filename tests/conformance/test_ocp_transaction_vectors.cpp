@@ -63,7 +63,7 @@ integration::BridgeRequest request(std::uint64_t address, std::uint32_t bytes,
 }
 
 void tick_until(OpenHbxSystem& system, const std::function<bool()>& done) {
-  for (std::uint64_t cycle = 0; cycle < 30000 && !done(); ++cycle) system.tick();
+  for (std::uint64_t cycle = 0; cycle < 200000 && !done(); ++cycle) system.tick();
   assert(done());
 }
 }

@@ -52,7 +52,9 @@ struct ResolvedSystemModel {
   std::uint64_t controller_queue_depth{256};
   std::uint64_t controller_cache_buffers_per_bank{2};
   std::uint64_t controller_ecc_credits{64};
-  std::uint64_t controller_backend_timeout{10000};
+  // Cycle-valued timing parameters use tck_picoseconds as their time base.
+  // The synthetic baseline models tR=4 us and tPROG=75 us at tCK=1 ns.
+  std::uint64_t controller_backend_timeout{100000};
   std::uint64_t pal_max_inflight{256};
   std::uint64_t pal_media_retry_budget{64};
   std::uint64_t pal_return_retry_budget{64};
@@ -66,10 +68,11 @@ struct ResolvedSystemModel {
   std::uint64_t fabric_arbitration_cycles{1};
   std::uint64_t fabric_propagation_cycles{1};
   std::uint64_t media_read_command_cycles{1};
-  std::uint64_t media_read_sense_cycles{10};
+  std::uint64_t media_read_sense_cycles{4000};
   std::uint64_t media_program_data_cycles{2};
-  std::uint64_t media_program_array_cycles{20};
+  std::uint64_t media_program_array_cycles{75000};
   std::uint64_t media_program_verify_cycles{3};
+  // tERS has not been calibrated for this synthetic profile yet.
   std::uint64_t media_erase_setup_cycles{1};
   std::uint64_t media_erase_array_cycles{40};
   std::uint64_t media_erase_verify_cycles{4};

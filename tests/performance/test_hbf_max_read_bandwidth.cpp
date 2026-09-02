@@ -18,6 +18,8 @@
 using namespace openhbx;
 
 namespace {
+constexpr std::uint64_t kFixtureProgramArrayCycles = 20;
+
 void print_phase(const char* name, const std::string& detail) {
   std::cout << "[OpenHBX] " << std::left << std::setw(9) << name << detail << '\n'
             << std::flush;
@@ -28,9 +30,13 @@ config::ResolvedHbfConfig resolved_config() {
   assert(input);
   std::ostringstream yaml;
   yaml << input.rdbuf();
-  const auto parsed = config::parse_hbf_yaml(yaml.str());
+  auto parsed = config::parse_hbf_yaml(yaml.str());
   assert(parsed);
-  auto resolved = config::resolve_hbf_config(parsed.value());
+  auto raw = parsed.take_value();
+  // Page programming is fixture setup and is outside the read measurement window.
+  raw.scalars["model.media_program_array_cycles"] =
+      std::to_string(kFixtureProgramArrayCycles);
+  auto resolved = config::resolve_hbf_config(raw);
   assert(resolved);
   return resolved.take_value();
 }
@@ -167,11 +173,21 @@ int main() {
       1000000.0 / 8.0 * 1000.0 / model.tck_picoseconds;
   const double aggregate_raw_ceiling =
       per_channel_raw_gigabytes_per_second * channels;
+  const std::uint64_t media_read_service_cycles =
+      model.media_read_command_cycles + model.media_read_sense_cycles;
+  assert(media_read_service_cycles != 0);
+  const double aggregate_media_ceiling =
+      static_cast<double>(pages * page_bytes) / media_read_service_cycles *
+      1000.0 / model.tck_picoseconds;
+  const double effective_ceiling =
+      std::min(aggregate_raw_ceiling, aggregate_media_ceiling);
   constexpr double kOcpUserTargetGigabytesPerSecond = 3072.0;
   const double raw_utilization = gigabytes_per_second / aggregate_raw_ceiling;
+  const double effective_utilization = gigabytes_per_second / effective_ceiling;
   const double ocp_target_ratio =
       gigabytes_per_second / kOcpUserTargetGigabytesPerSecond;
   assert(gigabytes_per_second <= aggregate_raw_ceiling);
+  assert(gigabytes_per_second <= aggregate_media_ceiling);
 
   const std::uint64_t latency_min =
       *std::min_element(latencies.begin(), latencies.end());
@@ -198,6 +214,8 @@ int main() {
             << "  modeled_link_efficiency:    "
             << static_cast<double>(model.fabric_efficiency_ppm) / 10000.0 << " %\n"
             << "  ocp_user_target_role:       report-only reference\n"
+            << "  fixture_program_cycles:     " << kFixtureProgramArrayCycles
+            << " (setup-only override)\n"
             << "\nmeasurement:\n"
             << "  requests:                   " << reads << " reads\n"
             << "  transferred:                "
@@ -210,6 +228,10 @@ int main() {
             << "  raw_link_ceiling:           " << aggregate_raw_ceiling
             << " GB/s (" << aggregate_raw_ceiling / 1000.0 << " TB/s)\n"
             << "  raw_link_utilization:       " << raw_utilization * 100.0 << " %\n"
+            << "  media_parallel_ceiling:     " << aggregate_media_ceiling
+            << " GB/s\n"
+            << "  effective_ceiling:          " << effective_ceiling << " GB/s\n"
+            << "  effective_utilization:      " << effective_utilization * 100.0 << " %\n"
             << "  ocp_user_target:            " << kOcpUserTargetGigabytesPerSecond
             << " GB/s (" << kOcpUserTargetGigabytesPerSecond / 1000.0 << " TB/s)\n"
             << "  ocp_target_achievement:     " << ocp_target_ratio * 100.0 << " %\n"
@@ -225,6 +247,7 @@ int main() {
             << "  outstanding_after_drain:    PASS (0)\n"
             << "  failures:                   PASS (0)\n"
             << "  observed_le_raw_ceiling:    PASS\n"
+            << "  observed_le_media_ceiling:  PASS\n"
             << "\nresult: PASS\n"
             << "note: synthetic transaction-level maximum; not a silicon guarantee\n";
 
@@ -241,6 +264,8 @@ int main() {
        << "  \"measurement_bytes\": " << bytes << ",\n"
        << "  \"measurement_cycles\": " << cycles << ",\n"
        << "  \"tck_picoseconds\": " << model.tck_picoseconds << ",\n"
+       << "  \"fixture_program_array_cycles\": "
+       << kFixtureProgramArrayCycles << ",\n"
        << "  \"bytes_per_cycle\": " << bytes_per_cycle << ",\n"
        << "  \"gigabytes_per_second\": " << gigabytes_per_second << ",\n"
        << "  \"per_channel_raw_ceiling_gigabytes_per_second\": "
@@ -248,6 +273,12 @@ int main() {
        << "  \"aggregate_raw_ceiling_gigabytes_per_second\": "
        << aggregate_raw_ceiling << ",\n"
        << "  \"raw_ceiling_utilization\": " << raw_utilization << ",\n"
+       << "  \"aggregate_media_ceiling_gigabytes_per_second\": "
+       << aggregate_media_ceiling << ",\n"
+       << "  \"effective_ceiling_gigabytes_per_second\": "
+       << effective_ceiling << ",\n"
+       << "  \"effective_ceiling_utilization\": "
+       << effective_utilization << ",\n"
        << "  \"ocp_user_target_gigabytes_per_second\": "
        << kOcpUserTargetGigabytesPerSecond << ",\n"
        << "  \"ocp_user_target_ratio\": " << ocp_target_ratio << ",\n"

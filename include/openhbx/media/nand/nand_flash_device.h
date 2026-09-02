@@ -19,6 +19,7 @@ namespace openhbx::media::nand {
 
 enum class PayloadMode { Sparse, TimingOnly };
 struct StageTiming {
+  // Fast component-test defaults. Product timings come from ResolvedSystemModel.
   std::uint64_t read_command{1}, read_sense{10};
   std::uint64_t program_data_in{2}, program_array{20}, program_verify{3};
   std::uint64_t erase_setup{1}, erase_array{40}, erase_verify{4};

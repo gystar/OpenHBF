@@ -53,5 +53,6 @@ core.*
 .DS_Store
 
 # Local working notes and archived material
+/docs-intro/
 /docs/unused/
 /docs/hfsss/AGENT_TEAM.md

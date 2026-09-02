@@ -4,7 +4,7 @@ product:
 geometry:
   source: synthetic
   host_channels: 16
-  core_dies: 1
+  core_dies: 16
   dies_per_core: 16
   banks_per_die: 16
   blocks_per_bank: 2
@@ -23,15 +23,26 @@ model:
   completion_capacity: 32768
   axi_interfaces: 4
   host_queue_depth_per_interface: 512
-  controller_pending_dlu: 2048
+  controller_pending_dlu: 4096
   controller_queue_depth: 4096
   controller_cache_buffers_per_bank: 2
-  controller_ecc_credits: 1024
-  pal_max_inflight: 2048
-  media_max_inflight: 2048
+  controller_ecc_credits: 4096
+  controller_backend_timeout: 100000
+  pal_max_inflight: 4096
+  media_max_inflight: 4096
   fabric_active_lanes: 64
   fabric_spare_lanes: 1
   fabric_bits_per_lane_cycle: 32
   fabric_efficiency_ppm: 1000000
   fabric_arbitration_cycles: 1
   fabric_propagation_cycles: 1
+  # Synthetic NAND timing at tCK=1 ns: tR=4 us, tPROG=75 us.
+  media_read_command_cycles: 1
+  media_read_sense_cycles: 4000
+  media_program_data_cycles: 2
+  media_program_array_cycles: 75000
+  media_program_verify_cycles: 3
+  # tERS is not calibrated yet; these remain non-physical placeholders.
+  media_erase_setup_cycles: 1
+  media_erase_array_cycles: 40
+  media_erase_verify_cycles: 4

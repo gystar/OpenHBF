@@ -89,7 +89,7 @@ void submit_page(OpenHbxSystem& system, integration::RequestBridge& bridge,
 }
 
 void tick_until(OpenHbxSystem& system, const std::function<bool()>& done,
-                std::uint64_t budget = 20000) {
+                std::uint64_t budget = 200000) {
   for (std::uint64_t tick = 0; tick < budget && !done(); ++tick) system.tick();
   assert(done());
 }
