@@ -273,6 +273,12 @@ Read snapshot在sense成功后创建，若后续raw outcome为UECC则completion�
 
 错误分为config、admission、raw media和integrity四类；Host映射不在07。统计在accept、stage terminal、state commit和completion处分别递增，避免bytes重复。Debug snapshot含contexts、EAT、Page/Block摘要、BBT version、fault rule hits及generation。
 
+### 8.1 `GAP-010`实现约束
+
+当前实现只有外部调用`bad_block_table().mark()`后拒绝目标Block的路径，`ReliabilityModel::fails()`与BBT没有提交关系。后续必须区分可重试操作失败与确认坏块：只有达到profile规定的确认条件后，才在verify completion阶段提交`BadBlockReason::ProgramFailure`或`EraseFailure`并递增BBT version；重复故障不得重复递增。factory manifest应在首个Host admission前按flattened physical Block ID装载，越界、重复或坏块数量超过可用容量必须结构化拒绝配置。
+
+BBT提交后通过窄typed事件通知04，事件不得暴露07内部容器。04完成视图切换前，新请求必须被有界阻塞或返回typed状态；无替代容量时发布`CapacityUnusable`。测试需证明失败前后Page/Block状态、BBT reason/version、mapping epoch、replay目标和terminal结果一致，且不存在旧坏块上的后续介质issue。
+
 ## 9. 测试用例设计
 
 | Test ID | Fixture/输入 | Fault/Timing | Oracle | 证据 |

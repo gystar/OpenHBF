@@ -54,7 +54,7 @@ S9于2026-08-30通过Docker Debug构建及`ctest -L openhbx_s9 --output-on-failu
 
 后续Docker性能门禁`openhbx_flash_read_bandwidth_test`已通过：真实production path在单Host Channel、单AXI Interface、单Bank synthetic profile下，1次warmup后完成15次4 KiB read，共61440 B、8146 simulation cycles，测得`7.542352 B/cycle`，不超过按Fabric forward/return资源公式得到的`7.699248 B/cycle` ceiling。OpenHBX复用既有Ramulator adapter默认值，将synthetic baseline冻结为`tCK=1000 ps`（1 ns/cycle、1 GHz），因此该次模型换算值为`7.542352 GB/s`。该结果只构成`E4-model-resource`候选证据；`tCK`是建模假设而非OCP/vendor保证值，且未覆盖多endpoint、Host/Bank/Media分别饱和或扩展趋势，`VER-006`继续保持`PARTIAL`。
 
-修正后的`openhbx_hbf_max_read_bandwidth_test`使用OCP最高档资源形状：16 Host Channel、每Channel 4个共享物理带宽的虚拟AXI、每Channel 16个Bank，以及每Channel独立的x64 lane/repair域。raw link按32 GT/s且不预置用户效率折扣。真实Host写链路准备256个不同Bank页面，reset清除Controller cache后同时读取256个4 KiB页面。Docker结果为1048576 B/334 ns，即`3139.449102 GB/s`（`3.139449 TB/s`）；相对4096 GB/s raw ceiling利用率`76.6467%`，相对OCP 3072 GB/s用户目标为`102.1956%`。超过目标说明当前transaction-level模型未显式覆盖全部PHY/flit/CRC开销，不是silicon超规格结论。
+当前`openhbx_hbf_max_read_bandwidth_test`使用完整synthetic资源形状：16 Host Channel、每Channel 4个共享物理带宽的虚拟AXI、16 Core Die、每Core Die 16 Die、每Die 16 Bank。4096个物理Bank均匀分配后每Channel拥有256个Bank，并保持每Channel独立的x64 lane/repair域。真实Host写链路准备4096个不同Bank页面，reset清除Controller cache后同时读取4096个4 KiB页面。2026-09-03 Docker结果为16777216 B/8884 ns，即`1888.475462 GB/s`（`1.888475 TB/s`）；相对4096 GB/s raw ceiling利用率`46.1054%`，相对OCP 3072 GB/s用户目标为`61.4738%`。测试还从测量起点每2000 simulation cycles自动报告区间完成字节和读写GB/s，用于观察流水线填充、稳态和排空；正式oracle仍使用结构化stats和完整批次守恒。
 
 | 需求ID | 来源/类别 | owner组件 | 验收/Test ID | 证据目标 |
 |---|---|---|---|---|

@@ -15,7 +15,7 @@
 
 ## 1. 模块概述与约束
 
-本LLD只设计测试代码与manifest，不改变01至07生产状态。正式构建和测试只在Docker中通过CMake/CTest执行；artifact只写`build/artifacts/<suite>`。fake生产组件最多E2，E3/E4必须链接真实`OpenHbxSystem`。
+本LLD只设计测试代码与manifest，不改变01至07生产状态。正式构建和测试默认在Conda环境中通过CMake/CTest执行，Docker作为固定工具链的可选复现路径；artifact只写`build/artifacts/<suite>`。fake生产组件最多E2，E3/E4必须链接真实`OpenHbxSystem`。
 
 | 内容类别 | 仓库相对存储位置 | 存储规则 | 状态 |
 |---|---|---|---|
@@ -95,7 +95,7 @@ driver每cycle先提交arrival operation，再按02定义tick phase观察events�
 | `tests/verification/system/test_fault_reset.cpp` | 新增 | 08 | fault/reset matrix | VER-004 | `PLANNED` |
 | `tests/verification/system/test_determinism.cpp` | 新增 | 08 | triple-run digest | VER-005 | `PLANNED` |
 | `tests/performance/test_flash_read_bandwidth.cpp` | 新增 | 08 | 单endpoint Flash read/Fabric ceiling | VER-006 | `VERIFIED`（局部oracle；总体仍PARTIAL） |
-| `tests/performance/test_hbf_max_read_bandwidth.cpp` | 新增 | 08 | 16 Channel/4 AXI/16 Bank饱和read | VER-006 | `VERIFIED`（模型最大吞吐；总体仍PARTIAL） |
+| `tests/performance/test_hbf_max_read_bandwidth.cpp` | 新增 | 08 | 16 Channel/4 AXI/256 Bank每Channel，共4096 Bank并发read | VER-006 | `VERIFIED`（模型最大吞吐；总体仍PARTIAL） |
 | `tests/conformance/spec_gap_manifest.json` | 新增 | 08 | 未提取字段/解除条件 | VER-008 | `BLOCKED_SPEC` |
 | `tests/conformance/evidence-manifest.schema.json` | 新增 | 08 | E3/E4 artifact字段契约 | VER-007 | `VERIFIED`（当前bundle） |
 | `tests/conformance/CMakeLists.txt` | 新增 | 08 | labels/targets与静态audit | 全部 | `VERIFIED`（3/3） |
@@ -132,7 +132,7 @@ driver每cycle先提交arrival operation，再按02定义tick phase观察events�
 
 ### Resource ceiling测试（`tests/performance/test_flash_read_bandwidth.cpp`）
 
-**Fixture A**：真实Host->Address->Controller->PAL/Fabric->NAND->Host单endpoint基线，full-duplex oracle按`4096/max(forward_command_cycles,return_data_cycles)`计算。**Fixture B**：16 Channel、4个虚拟AXI/Channel、16个owned Bank/Channel；AXI共享Channel resource，Forward/Return独立EAT，每条route携带64条Channel-local lane，repair manager维护16×64 active和每Channel本地spare。raw link使用100%能力，不预置OCP用户效率。**Oracle/结果**：1048576 B/334 cycle，`3139.449102 GB/s <= 4096 GB/s raw ceiling`，raw利用率`76.6467%`，OCP用户目标比`102.1956%`；256个payload逐byte为`0xa5`，failure为0且outstanding归零。**错误边界**：超过3072 GB/s目标反映未建模完整UCIe协议开销，不是silicon保证。**证据等级**：`E4-model-resource`候选。
+**Fixture A**：真实Host->Address->Controller->PAL/Fabric->NAND->Host单endpoint基线，full-duplex oracle按`4096/max(forward_command_cycles,return_data_cycles)`计算。**Fixture B**：16 Channel、4个虚拟AXI/Channel、256个owned Bank/Channel，共4096个并发Bank；AXI共享Channel resource，Forward/Return独立EAT，每条route携带64条Channel-local lane，repair manager维护16×64 active和每Channel本地spare。raw link使用100%能力，不预置OCP用户效率。**Oracle/结果**：16777216 B/8884 cycle，`1888.475462 GB/s <= 4096 GB/s raw ceiling`，raw利用率`46.1054%`，OCP用户目标比`61.4738%`；4096个payload逐byte为`0xa5`，failure为0且outstanding归零。测量起点启用2000-cycle周期日志，输出各窗口的completed read/write bytes和GB/s；日志仅用于观察，结构化stats仍是oracle。**证据等级**：`E4-model-resource`候选。
 
 ### Spec gap manifest（`tests/verification/manifests/spec_gap_manifest.yaml`）
 
@@ -160,7 +160,7 @@ E3/E4 artifact最小集合严格采用实验规范第8节；另存spec locator�
 | VER-FAULT-001 | real pipeline/fault ports | ECC/raw/TSV/program/reset矩阵 | data-valid、commit、retire、守恒 | E3 |
 | VER-DET-001 | 同binary/config/seed三次 | mixed workload+fault | digest/result/stats完全一致 | E3 |
 | VER-PERF-001 | real pipeline；single-endpoint synthetic profile | 1 warmup + 15个4 KiB Flash read | 61440 B/8146 cycle；`7.542352 <= 7.699248 B/cycle` | E4 candidate |
-| VER-PERF-002 | real pipeline；16 Channel、4 AXI/Channel、16 Bank/Channel | 256个并行4 KiB Flash read | 1048576 B/334 ns；`3139.449102 GB/s`，raw利用率76.6467% | E4 candidate |
+| VER-PERF-002 | real pipeline；16 Channel、4 AXI/Channel、256 Bank/Channel | 4096个并行4 KiB Flash read | 16777216 B/8884 ns；`1888.475462 GB/s`，raw利用率46.1054% | E4 candidate |
 | VER-E4-AUDIT | evidence index | 所有E4条目 | locator/hash/bundle/replay齐全 | E4 |
 | VER-SPEC-GAP | gap manifest | 未提取字段 | 不存在无来源expected值 | audit |
 
@@ -176,6 +176,6 @@ E3/E4 artifact最小集合严格采用实验规范第8节；另存spec locator�
 | ADR-08-002 | OCP vector要求原文定位/hash | 摘要可能不完整 | 常识补齐 | 保持客观性 | 部分项BLOCKED_SPEC | `PLANNED` |
 | ADR-08-003 | hybrid bonding排除首期门槛 | 非OCP产品行为且缺vendor数据 | 纳入默认矩阵 | 避免错误承诺 | 后续独立研究验证 | `PLANNED` |
 
-完成定义：所有工具和测试接入Docker CMake/CTest；VER-001至007按各自实际等级生成可重放artifact；只有具备规范定位和对应oracle的已提取字段才可形成E4字段证据。VER-008 gap关闭后方可声明完整OCP HBF一致性；未关闭项继续保持`BLOCKED_SPEC`或`EXTERNAL_DEPENDENCY`。
+完成定义：所有工具和测试接入Conda/Docker CMake/CTest统一入口；VER-001至007按各自实际等级生成可重放artifact；只有具备规范定位和对应oracle的已提取字段才可形成E4字段证据。VER-008 gap关闭后方可声明完整OCP HBF一致性；未关闭项继续保持`BLOCKED_SPEC`或`EXTERNAL_DEPENDENCY`。
 
 当前执行证据：2026-08-30，Docker Debug、Ramulator2 OFF，`ctest -L openhbx_s9 --output-on-failure`为3/3通过；artifact位于`build/artifacts/stages/s9/EXP-S9-CONFORMANCE/20260830T103513Z/`。vector测试经过真实01至07并提供E3/E4候选字段证据；Host admission oracle因Controller为受控fake只计E2；速度等级只核对规范算式，不是吞吐饱和实验。

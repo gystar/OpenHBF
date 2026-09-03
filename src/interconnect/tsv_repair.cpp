@@ -14,12 +14,13 @@ TsvRepairManager::TsvRepairManager(std::uint64_t channels,
                                    std::uint64_t spares)
     : active_lanes_per_channel_(active) {
   const auto physical_stride = checked_add(active, spares);
-  const auto total_physical = physical_stride
-      ? checked_mul(channels, *physical_stride) : std::nullopt;
+  const auto total_physical =
+      physical_stride ? checked_mul(channels, *physical_stride) : std::nullopt;
   const auto total_logical = checked_mul(channels, active);
   if (channels == 0 || active == 0 || !physical_stride || !total_physical ||
-      !total_logical)
+      !total_logical) {
     throw std::invalid_argument("TSV lane count overflow");
+  }
   for (std::uint64_t channel = 0; channel < channels; ++channel) {
     for (std::uint64_t lane = 0; lane < active; ++lane) {
       const std::uint64_t logical = channel * active + lane;
@@ -35,14 +36,21 @@ TsvRepairManager::TsvRepairManager(std::uint64_t channels,
   epoch_maps_.emplace(epoch_, active_to_physical_);
 }
 
+// 标记物理 lane 故障，并使用同一 Channel 中编号最小的 spare 替换它。
 RepairResult TsvRepairManager::apply_fault(std::uint64_t physical) {
   std::uint64_t logical = 0;
   bool found = false;
   for (const auto& item : active_to_physical_) {
-    if (item.second == physical) { logical = item.first; found = true; break; }
+    if (item.second == physical) {
+      logical = item.first;
+      found = true;
+      break;
+    }
   }
   if (!found) {
-    if (failed_physical_.count(physical)) return {RepairCode::AlreadyFailed, epoch_, 0};
+    if (failed_physical_.count(physical)) {
+      return {RepairCode::AlreadyFailed, epoch_, 0};
+    }
     return {RepairCode::UnknownLane, epoch_, 0};
   }
   failed_physical_.insert(physical);
@@ -62,26 +70,40 @@ RepairResult TsvRepairManager::apply_fault(std::uint64_t physical) {
   return {RepairCode::Repaired, epoch_, spare};
 }
 
+// 将逻辑路由解析为当前 repair epoch 下的物理 lane 路由。
 bool TsvRepairManager::resolve(const RouteProfile& profile, Route& route) const {
-  for (auto logical : profile.logical_lanes)
-    if (active_to_physical_.find(logical) == active_to_physical_.end()) return false;
+  for (auto logical : profile.logical_lanes) {
+    if (active_to_physical_.find(logical) == active_to_physical_.end()) {
+      return false;
+    }
+  }
   route = {profile.id, profile.resources, profile.logical_lanes, {}, epoch_};
   route.physical_lanes.reserve(profile.logical_lanes.size());
-  for (auto logical : profile.logical_lanes)
+  for (auto logical : profile.logical_lanes) {
     route.physical_lanes.push_back(active_to_physical_.at(logical));
+  }
   return true;
 }
 
+// 检查冻结的路由在其 repair epoch 中是否仍与映射一致且没有故障 lane。
 bool TsvRepairManager::is_operational(const Route& route) const {
-  if (route.logical_lanes.size() != route.physical_lanes.size()) return false;
+  if (route.logical_lanes.size() != route.physical_lanes.size()) {
+    return false;
+  }
   const auto epoch = epoch_maps_.find(route.repair_epoch);
-  if (epoch == epoch_maps_.end()) return false;
+  if (epoch == epoch_maps_.end()) {
+    return false;
+  }
   for (std::size_t index = 0; index < route.physical_lanes.size(); ++index) {
     const auto logical = epoch->second.find(route.logical_lanes[index]);
-    if (logical == epoch->second.end() || logical->second != route.physical_lanes[index])
+    if (logical == epoch->second.end() ||
+        logical->second != route.physical_lanes[index]) {
       return false;
+    }
     const auto physical = route.physical_lanes[index];
-    if (failed_physical_.count(physical) != 0) return false;
+    if (failed_physical_.count(physical) != 0) {
+      return false;
+    }
   }
   return true;
 }

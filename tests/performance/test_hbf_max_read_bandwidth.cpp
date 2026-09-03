@@ -132,6 +132,7 @@ int main() {
   tick_until(system, [&] { return system.generation().value() == generation; });
 
   print_phase("MEASURE", "issuing one 4 KiB read to every channel-owned bank");
+  system.enable_periodic_bandwidth_log(2000);
   const auto before = system.stats();
   const std::uint64_t start = system.cycle().value();
   std::uint64_t reads = 0;

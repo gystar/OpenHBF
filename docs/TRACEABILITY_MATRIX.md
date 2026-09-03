@@ -159,6 +159,7 @@ NAND timing、cell mode和可靠性数字若非vendor数据，必须标记为syn
 | GAP-007 | Scratchpad具体容量/latency及部分控制字段 | CTRL-009 | product profile与边界vector |
 | GAP-008 | IEEE1500/DA完整instruction/data语义 | HOST-008/VER-003 | 规范与golden vector |
 | GAP-009 | hybrid bonding物理参数 | PAL-007 | vendor pitch/lane/BER/latency/energy/thermal数据 |
+| GAP-010 | factory/runtime坏块未与Zone/容量视图及Host replay形成闭环 | ADDR-008/MEDIA-005/VER-003/004 | 启动期manifest规避、运行期BBT提交与原子retirement、无spare容量降级及E3故障测试全部完成 |
 
 ## 11. 发布声明规则
 
@@ -170,4 +171,4 @@ NAND timing、cell mode和可靠性数字若非vendor数据，必须标记为syn
 
 `tests/performance/test_flash_read_bandwidth.cpp`的Docker结果补充了`VER-006`局部证据：single-endpoint synthetic真实pipeline在1次warmup后完成15次4 KiB read，即61440 B/8146 simulation cycles，`7.542352 B/cycle`不超过Fabric公式ceiling `7.699248 B/cycle`，且system stats验证accepted/completed bytes、failure和outstanding守恒。配置显式采用OpenHBX/Ramulator adapter既有synthetic baseline `tCK=1000 ps`，对应模型值`7.542352 GB/s`。此结果为`E4-model-resource`候选；该`tCK`不是vendor/OCP保证，且未覆盖多endpoint和Host/Bank/Media独立瓶颈，故`VER-006`仍为`PARTIAL`。
 
-修正后的`tests/performance/test_hbf_max_read_bandwidth.cpp`形成16 Channel饱和候选证据：每Channel 4个虚拟AXI共享物理Channel resource，Forward/Return独立计时，每条route携带完整64-lane集合，repair/spare按Channel隔离。raw link不预置用户效率折扣；256个4 KiB read在334 ns完成1048576 B，得到`3139.449102 GB/s`，为4096 GB/s raw ceiling的`76.6467%`，相对OCP 3072 GB/s用户目标为`102.1956%`。超出用户目标反映完整UCIe开销尚未建模，故`VER-006`保持`PARTIAL`。
+当前`tests/performance/test_hbf_max_read_bandwidth.cpp`形成16 Channel饱和候选证据：16 Core Die × 16 Die/Core × 16 Bank/Die共4096个物理Bank，均匀映射为每Channel 256个owned Bank；每Channel 4个虚拟AXI共享物理Channel resource，Forward/Return独立计时，每条route携带完整64-lane集合，repair/spare按Channel隔离。4096个4 KiB read在8884 ns完成16777216 B，得到`1888.475462 GB/s`，为4096 GB/s raw ceiling的`46.1054%`，相对OCP 3072 GB/s用户目标为`61.4738%`。测试每2000 simulation cycles自动报告区间完成字节和GB/s；周期文本日志用于诊断，最终守恒和性能oracle来自结构化stats，故`VER-006`保持`PARTIAL`。

@@ -7,6 +7,7 @@ namespace openhbx::hbf::controller {
 DluAccumulator::DluAccumulator(std::size_t max_pending, std::uint64_t timeout_cycles)
     : max_pending_(max_pending), timeout_cycles_(timeout_cycles) {}
 
+// Controller 聚合粒度：4 KiB DLU， DLU = device logical unit
 AccumulateResult DluAccumulator::add_sector(const DluKey& key,
     address::SectorIndex sector, PayloadHandle payload, Token token, Cycle now) {
   const auto index = sector.value();

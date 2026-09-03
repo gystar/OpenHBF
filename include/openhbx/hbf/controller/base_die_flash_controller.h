@@ -59,6 +59,7 @@ class BaseDieFlashController {
     Token work_token;
     Cycle deadline;
   };
+
   AdmissionResult submit_write(ControllerRequest request, Cycle now);
   AdmissionResult submit_read(ControllerRequest request, Cycle now);
   bool enqueue(BackendRecord record, WorkKind kind);

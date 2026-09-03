@@ -83,6 +83,7 @@ class OpenHbxSystem {
   std::optional<AddressDebugSnapshot> debug_address_snapshot(
       std::uint64_t flat_address_bytes) const;
   OpenHbxSystemStats stats() const;
+  void enable_periodic_bandwidth_log(std::uint64_t interval_cycles);
   EventJournalSnapshot observed_events() const { return journal_.snapshot(); }
   void set_log_level(LogLevel level) noexcept { journal_.set_minimum_level(level); }
   void set_log_sink(EventJournal::Sink sink) { journal_.set_sink(std::move(sink)); }
@@ -145,6 +146,10 @@ class OpenHbxSystem {
   std::uint64_t failed_requests_{0}, latency_samples_{0}, latency_sum_cycles_{0};
   std::uint64_t latency_min_cycles_{0}, latency_max_cycles_{0};
   std::uint64_t first_completion_cycle_{0}, last_completion_cycle_{0};
+  std::uint64_t bandwidth_log_interval_cycles_{0};
+  std::uint64_t bandwidth_log_last_cycle_{0};
+  std::uint64_t bandwidth_log_last_read_bytes_{0};
+  std::uint64_t bandwidth_log_last_write_bytes_{0};
   std::uint64_t next_external_token_{1};
 };
 

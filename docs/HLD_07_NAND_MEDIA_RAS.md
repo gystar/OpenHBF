@@ -201,6 +201,12 @@ Any nonterminal --reset--> Aborted；stale event不提交
 
 typed outcome包含`Success, ReadErasedPage, RawCorrectable, RawUncorrectable, RetrySuggested, RefreshNotice, ProgramFail, EraseFail, CapacityUnusable, DieTemporarilyBlocked, BadBlock, Retired, Aborted, IntegrityError`。07不直接生成Host AXI status；05负责映射OCP表12/13。trace记录token/address/stage/start/end/resource/raw outcome/seed rule；统计包括read/program/erase、PEC、read count、bad/retired、raw error、payload bytes、stage occupancy和stale event。snapshot必须支持定位首个非idle owner。
 
+### 9.1 已知缺口：BBT只检查、不驱动恢复
+
+当前`BadBlockTable`支持手工`mark()`和admission前`is_bad()`检查，但factory bad manifest未在系统启动时装载，Program/Erase verify failure也只返回失败状态，不会自动写入BBT。07尚未向04发布带reason/version的retirement事件，因此坏块不会触发Zone/容量视图更新；后续请求仍映射到原Block并再次被拒绝。
+
+后续07实现负责在启动时装载并校验factory bad manifest，在运行期确认不可恢复的Program/Erase failure后原子提交BBT reason/version，并通过typed端口请求04执行retirement。07不直接修改Host地址公式或搬移有效数据；映射epoch和Host replay分别由04、05拥有。该闭环完成并通过`VER-MEDIA-005`与`GAP-010`测试前，factory/runtime bad只可声明为“可注入并拒绝访问”。
+
 ## 10. 测试与验收
 
 | Test ID | 层级 | 场景 | Oracle | 证据 |

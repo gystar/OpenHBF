@@ -158,6 +158,12 @@
 
 统计：maps/map_errors/owner_rejects/reservations/completions/replay/remaps/retired；构造后mapping热路径不修改stats之外的状态。Debug trace含A1/L1/B1/P1/BankNum/L2和epoch；snapshot含geometry hash、sorted block state、zone map，不含介质payload。守恒见HLD第9章。
 
+### 8.1 `GAP-010`实现约束
+
+当前`OpenHbxSystem`以空`zones`参数构造mapper，`map()`因此采用`logical block == physical block`；04也没有接收BBT变化的端口。后续应增加启动期factory-bad视图构建和运行期typed retirement事务，但不得让mapper直接读取07的可变内部表。跨模块事务至少携带physical Block、bad reason、BBT version、旧/新mapping epoch及outstanding状态，并按以下顺序执行：冻结受影响Block的新admission、等待或终止旧reservation、提交BBT、更新Zone/容量视图、启动Host replay。任一步失败不得发布半更新映射。
+
+验收必须覆盖：factory bad从首次map起不可达；运行期Program/Erase failure后旧physical Block不再被issue；replay落到新视图且成功前Host不得收到成功；无替代容量返回`CapacityUnusable`；正反向映射、BBT version、mapping epoch和accepted/terminal计数守恒。
+
 ## 9. 测试用例设计
 
 | ID | Requirement | Evidence | Fixture/Input | Oracle |

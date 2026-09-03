@@ -4,9 +4,56 @@ OpenHBX 是面向 OCP High Bandwidth Flash（HBF）的确定性模拟器。当�
 
 设计说明见 [`docs/README.md`](docs/README.md)，正式实验规则见 [`docs/实验与测试执行规范.md`](docs/实验与测试执行规范.md)。
 
-## 1. 准备 Docker 环境
+## 1. 使用 Conda 在宿主机构建和执行
 
-所有命令均从仓库根目录执行。首次使用时构建开发镜像：
+所有命令均从仓库根目录执行。LLMCompass 工作区已提供 Conda 环境：
+
+```bash
+conda activate /home/xuzihan/LLMCompass_3D_NMP/.conda-env
+```
+
+该环境需要提供 CMake、C++17 编译器、Make 和 Python。可用下列命令检查：
+
+```bash
+cmake --version
+c++ --version
+make --version
+python --version
+```
+
+宿主机和 Docker 共用 `build/tests/` 作为构建目录。首次从 Docker 切换到 Conda，或反向切换时，必须使用 `--fresh`覆盖 CMake cache 中记录的源码绝对路径：
+
+```bash
+cmake --fresh -S . -B build/tests \
+  -DOPENHBF_BUILD_TESTS=ON \
+  -DOPENHBF_WITH_RAMULATOR2=OFF \
+  -DCMAKE_BUILD_TYPE=Debug
+cmake --build build/tests -j2
+```
+
+`--fresh` 只重建 `build/tests` 的 CMake cache，不会删除 `build/artifacts/` 中的实验证据。之后只要环境和源码路径未变，可去掉 `--fresh` 进行增量构建。
+
+运行全部测试：
+
+```bash
+ctest --test-dir build/tests --output-on-failure
+```
+
+运行 HBF 读带宽实验：
+
+```bash
+ctest --test-dir build/tests \
+  -R '^openhbx_hbf_max_read_bandwidth_test$' \
+  --verbose
+```
+
+该测试覆盖16个Host Channel，每Channel拥有256个可并发Bank，共向4096个Bank各发出一个4 KiB读请求。运行时每2000个simulation cycles自动输出一次区间读写字节数和GB/s，无需从最终结果手工换算瞬时带宽。Conda是本项目推荐的默认构建与执行方式，也可按[`docs/实验与测试执行规范.md`](docs/实验与测试执行规范.md)形成正式E3/E4证据。
+
+构建产物统一放在 `build/tests/`，不会写入测试源码目录 `tests/`。`build-host/` 不再作为常规构建目录。
+
+## 2. 使用 Docker 隔离构建（可选复现环境）
+
+需要固定容器工具链时，首次构建开发镜像：
 
 ```bash
 docker compose up -d --build dev
@@ -18,16 +65,14 @@ docker compose up -d --build dev
 docker compose up -d dev
 ```
 
-构建产物统一放在 `build/tests/`，不会写入测试源码目录 `tests/`。
-
-## 2. 方法一：直接使用 Docker Compose
+### 2.1 直接使用 Docker Compose
 
 这种方法不进入容器，适合日常开发和自动化。
 
-### 2.1 配置和编译
+#### 2.1.1 配置和编译
 
 ```bash
-docker compose exec -T dev cmake -S . -B build/tests \
+docker compose exec -T dev cmake --fresh -S . -B build/tests \
   -DOPENHBF_BUILD_TESTS=ON \
   -DOPENHBF_WITH_RAMULATOR2=OFF \
   -DCMAKE_BUILD_TYPE=Debug
@@ -35,7 +80,7 @@ docker compose exec -T dev cmake -S . -B build/tests \
 docker compose exec -T dev cmake --build build/tests -j2
 ```
 
-### 2.2 运行全部 HBF 读带宽实验
+#### 2.1.2 运行全部 HBF 读带宽实验
 
 ```bash
 docker compose exec -T dev ctest \
@@ -46,7 +91,7 @@ docker compose exec -T dev ctest \
 
 `--verbose`用于显示实验成功时的吞吐、延迟和检查结果；不加该参数时，CTest通常只显示通过或失败。
 
-### 2.3 运行全部测试
+#### 2.1.3 运行全部测试
 
 ```bash
 docker compose exec -T dev ctest \
@@ -54,23 +99,23 @@ docker compose exec -T dev ctest \
   --output-on-failure
 ```
 
-## 3. 方法二：进入 Docker 后使用 CMake 和 Make
+### 2.2 进入 Docker 后使用 CMake 和 Make
 
 这种方法适合需要连续编译、运行和调试的开发过程。
 
-### 3.1 进入容器
+#### 2.2.1 进入容器
 
 ```bash
 docker compose exec dev bash
 ```
 
-### 3.2 配置和编译
+#### 2.2.2 配置和编译
 
 ```bash
 mkdir -p build
 cd build
 
-cmake .. -B tests \
+cmake --fresh .. -B tests \
   -DOPENHBF_BUILD_TESTS=ON \
   -DOPENHBF_WITH_RAMULATOR2=OFF \
   -DCMAKE_BUILD_TYPE=Debug
@@ -85,7 +130,7 @@ make -j2
 - `-B tests`：生成物写入 `build/tests/`；
 - `make -j2`：使用两个并行任务编译。
 
-### 3.3 运行全部 HBF 读带宽实验
+#### 2.2.3 运行全部 HBF 读带宽实验
 
 此时位于 `build/tests/`：
 
@@ -111,18 +156,18 @@ experiment:
   evidence:                   E4-model-resource candidate
 
 measurement:
-  requests:                   256 reads
-  transferred:                1.000 MiB
-  window:                     334 cycles (334.000 ns)
-  throughput:                 3139.449 GB/s (3.139 TB/s)
+  requests:                   4096 reads
+  transferred:                16.000 MiB
+  window:                     8884 cycles (8884.000 ns)
+  throughput:                 1888.475 GB/s (1.888 TB/s)
   raw_link_ceiling:           4096.000 GB/s (4.096 TB/s)
-  raw_link_utilization:       76.647 %
+  raw_link_utilization:       46.105 %
   ocp_user_target:            3072.000 GB/s (3.072 TB/s)
-  ocp_target_achievement:     102.196 %
+  ocp_target_achievement:     61.474 %
 
 checks:
-  completed_requests:         PASS (256/256)
-  completed_bytes:            PASS (1048576 B)
+  completed_requests:         PASS (4096/4096)
+  completed_bytes:            PASS (16777216 B)
   payload_integrity:          PASS
   outstanding_after_drain:    PASS (0)
   failures:                   PASS (0)
@@ -131,9 +176,18 @@ checks:
 result: PASS
 ```
 
-结果说明：256个4 KiB读请求全部完成，共传输1 MiB；测量窗口为334个模拟周期，得到3.139 TB/s。该结果低于模型的4.096 TB/s raw link上限，并达到3.072 TB/s OCP用户带宽参考值的102.196%。
+结果说明：当前synthetic拓扑为16 Core Die、每Core Die 16 Die、每Die 16 Bank。16个Host Channel均匀拥有全部4096个物理Bank，即每Channel 256 Bank。实验向每个Bank并发发出一个4 KiB读请求，共完成4096个请求并传输16 MiB；2026-09-03测量窗口为8884个模拟周期，得到1.888 TB/s。该结果低于模型的4.096 TB/s raw link上限，达到3.072 TB/s OCP用户带宽参考值的61.474%。
 
-这里的3.139 TB/s是当前配置下的 **transaction-level模拟上限**。模型将OCP目标作为报告参考，尚未扣除所有真实协议和芯片开销，因此不能把它解释为硅片保证值。
+测量期间还会自动输出周期日志，例如：
+
+```text
+[OpenHBX][bandwidth] cycles=105357-107357 interval_cycles=2000 read_bytes=6819840 read_GBps=3409.920 ...
+[OpenHBX][bandwidth] cycles=107357-109357 interval_cycles=2000 read_bytes=6901760 read_GBps=3450.880 ...
+```
+
+周期日志表示相邻2000-cycle窗口内实际完成的字节和带宽；最终`measurement`表示从开始注入到全部完成的批次平均带宽，两者口径不同。
+
+这里的1.888 TB/s是当前配置和有限批次下的 **transaction-level模拟结果**。模型将OCP目标作为报告参考，尚未覆盖所有真实协议和芯片开销，因此不能把它解释为硅片保证值。
 
 CTest还会把机器可读结果保存到 `build/artifacts/performance/EXP-PERF-HBF-MAX-READ/ctest/bandwidth.json`。
 

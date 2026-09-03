@@ -186,6 +186,12 @@ reset使旧epoch reservation失效；动态介质数据不随ZoneMap改变。
 
 错误包括invalid/range/overflow/channel-owner/order/replay-required/capacity-unusable/stale-reservation。04返回typed原因，由03或05映射OCP status。trace记录输入单位、公式中间值、zone epoch、block cursor和reservation token；snapshot不含payload。守恒式：`reservations_created = completed + cancelled + outstanding`；Zone remap前后可用zone数守恒（retirement除外）。
 
+### 9.1 已知缺口：坏块与地址视图尚未联动
+
+当前生产装配未向`HbfAddressMapper`传入`ZoneMap`，且mapper不查询07的`BadBlockTable`。因此factory bad或运行期标记的坏块仍会由固定R1--R5公式映射到原物理Block，只在NAND admission阶段返回`BadBlock`；Program/Erase failure也不会自动更新地址视图。`BlockSequence`的Replay状态、04的ZoneMap和07的BBT目前是彼此分离的机制，不能宣称已实现坏块规避或重映射。
+
+后续实现必须保持R1--R5公式不变，不引入传统SSD任意L2P、GC或透明active-data relocation。factory bad manifest应在开放Host admission前形成可审计的Zone/容量视图，使逻辑地址只落到可用物理Block；运行期坏块应在verify failure确认后，由07提交BBT reason/version，04原子retire旧视图并提升mapping epoch，再由既有Host replay流程向新视图重写。无可用替代容量时返回`CapacityUnusable`。关闭条件见`GAP-010`。
+
 ## 10. 测试与验收
 
 | Test ID | 层级 | 场景与oracle | 证据 |

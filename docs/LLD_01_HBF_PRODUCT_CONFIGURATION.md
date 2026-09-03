@@ -219,7 +219,7 @@ canonicalize; compute hash; freeze
 | CFG-T11/T12 | 来源与入口等价 | real converters/resolver/writer | YAML/hash完全相等 | E2 |
 
 实验执行、证据保存和状态更新统一遵循
-[`实验与测试执行规范.md`](实验与测试执行规范.md)。正式E2测试由Docker/CMake/CTest执行，artifact额外保存canonical config和validation report。
+[`实验与测试执行规范.md`](实验与测试执行规范.md)。正式E2测试默认由Conda/CMake/CTest执行，也可使用Docker复现；artifact额外保存canonical config、validation report和实际执行环境身份。
 
 ## 10. 实施顺序、ADR与完成定义
 

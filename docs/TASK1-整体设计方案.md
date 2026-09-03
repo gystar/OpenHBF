@@ -449,7 +449,7 @@ Fake最多替代外部sink、可控clock-independent input或fault source。Fake
 ### Phase E：一致性与性能证据
 
 - 完成08的E1至E4测试；
-- Docker内执行CMake/CTest、sanitizer、determinism和resource ceiling实验；
+- 默认在Conda环境内执行CMake/CTest、sanitizer、determinism和resource ceiling实验，Docker用于固定工具链复现；
 - 只依据实际artifact更新状态。
 
 ## 15. TASK1完成定义
@@ -464,7 +464,7 @@ Fake最多替代外部sink、可控clock-independent input或fault source。Fake
 6. completion-time commit、reset generation、exactly-once及资源守恒通过E3；
 7. 可定位的OCP packet/status/register/mapping行为通过E4 vector；
 8. Ramulator adapter ABI、backpressure和callback通过差分/集成测试；
-9. 所有正式验证在Docker中通过CMake/CTest执行并保存合规artifact；
+9. 所有正式验证在记录环境身份的Conda或Docker中通过CMake/CTest执行并保存合规artifact；
 10. 外部UCIe/AMBA/vendor缺口仍明确列出，发布声明不超过证据覆盖范围。
 
 文档生成、代码编译、单个fake测试或synthetic参数实验均不能单独构成TASK1完成证据。

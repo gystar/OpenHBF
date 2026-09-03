@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <array>
 #include <limits>
+#include <iomanip>
+#include <iostream>
 #include <set>
 #include <stdexcept>
 #include <utility>
@@ -643,6 +645,41 @@ void OpenHbxSystem::tick() {
   tick_in_progress_ = false;
   lifecycle_.advance_cycle();
   ++ticks_;
+  const std::uint64_t sample_cycle = cycle().value();
+  if (bandwidth_log_interval_cycles_ != 0 &&
+      sample_cycle - bandwidth_log_last_cycle_ >= bandwidth_log_interval_cycles_) {
+    const std::uint64_t interval_cycles = sample_cycle - bandwidth_log_last_cycle_;
+    const std::uint64_t interval_read_bytes =
+        read_completed_bytes_ - bandwidth_log_last_read_bytes_;
+    const std::uint64_t interval_write_bytes =
+        write_completed_bytes_ - bandwidth_log_last_write_bytes_;
+    const double time_scale = 1000.0 / config_.system_model().tck_picoseconds;
+    const double read_gigabytes_per_second =
+        static_cast<double>(interval_read_bytes) / interval_cycles * time_scale;
+    const double write_gigabytes_per_second =
+        static_cast<double>(interval_write_bytes) / interval_cycles * time_scale;
+    const auto old_flags = std::clog.flags();
+    const auto old_precision = std::clog.precision();
+    std::clog << std::fixed << std::setprecision(3)
+              << "[OpenHBX][bandwidth] cycles=" << bandwidth_log_last_cycle_
+              << '-' << sample_cycle
+              << " read_GBps=" << read_gigabytes_per_second
+              << " write_GBps=" << write_gigabytes_per_second
+              << '\n';
+    std::clog.flags(old_flags);
+    std::clog.precision(old_precision);
+    bandwidth_log_last_cycle_ = sample_cycle;
+    bandwidth_log_last_read_bytes_ = read_completed_bytes_;
+    bandwidth_log_last_write_bytes_ = write_completed_bytes_;
+  }
+}
+
+void OpenHbxSystem::enable_periodic_bandwidth_log(
+    std::uint64_t interval_cycles) {
+  bandwidth_log_interval_cycles_ = interval_cycles;
+  bandwidth_log_last_cycle_ = cycle().value();
+  bandwidth_log_last_read_bytes_ = read_completed_bytes_;
+  bandwidth_log_last_write_bytes_ = write_completed_bytes_;
 }
 
 bool OpenHbxSystem::reset() {

@@ -21,6 +21,7 @@ enum class SequenceError {
   Retired,
   Overflow,
 };
+
 enum class SequenceMode { Empty, Sequential, Reserved, Replay, Full, Retired };
 enum class ProgramResult { Success, Failure };
 

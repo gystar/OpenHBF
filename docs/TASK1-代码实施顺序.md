@@ -9,7 +9,7 @@
 
 本文把8模块设计转换为可串行实施的代码阶段。Agent一次只执行一个已解锁阶段；当前阶段通过规定门禁并留下交接记录后，下一阶段才能开始。禁止多个Agent同时定义公共类型、EventQueue、地址语义或跨模块端口。
 
-正式验证统一遵循[`实验与测试执行规范.md`](实验与测试执行规范.md)：只在Docker中通过CMake/CTest执行；日常构建进入`build/tests/`，隔离变体进入`build/tests-<profile>/`，证据进入`build/artifacts/<suite>`。
+正式验证统一遵循[`实验与测试执行规范.md`](实验与测试执行规范.md)：默认在Conda环境中通过CMake/CTest执行，Docker可用于固定工具链复现；日常构建进入`build/tests/`，隔离变体进入`build/tests-<profile>/`，证据进入`build/artifacts/<suite>`。
 
 实施遵循以下不变量：
 
