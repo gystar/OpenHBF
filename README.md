@@ -6,13 +6,16 @@ OpenHBX 是面向 OCP High Bandwidth Flash（HBF）的确定性模拟器。当�
 
 ## 1. 使用 Conda 在宿主机构建和执行
 
-所有命令均从仓库根目录执行。LLMCompass 工作区已提供 Conda 环境：
+所有命令均从仓库根目录执行。项目要求 CMake 3.16 或更高版本，并使用 C++17 编译器。可以按下面的示例创建独立 Conda 环境（推荐 GCC 11）：
 
 ```bash
-conda activate /home/xuzihan/LLMCompass_3D_NMP/.conda-env
+conda create -n openhbf -c conda-forge \
+  cmake=3.27 ninja=1.11 make=4.4 \
+  gcc_linux-64=11 gxx_linux-64=11 python=3.11
+conda activate openhbf
 ```
 
-该环境需要提供 CMake、C++17 编译器、Make 和 Python。可用下列命令检查：
+也可以使用已有环境，只要其中工具版本满足要求。激活后，可用下列命令检查：
 
 ```bash
 cmake --version
@@ -21,7 +24,7 @@ make --version
 python --version
 ```
 
-宿主机和 Docker 共用 `build/tests/` 作为构建目录。首次从 Docker 切换到 Conda，或反向切换时，必须使用 `--fresh`覆盖 CMake cache 中记录的源码绝对路径：
+使用 Conda 构建时，构建目录为 `build/tests/`：
 
 ```bash
 cmake --fresh -S . -B build/tests \
@@ -31,7 +34,7 @@ cmake --fresh -S . -B build/tests \
 cmake --build build/tests -j2
 ```
 
-`--fresh` 只重建 `build/tests` 的 CMake cache，不会删除 `build/artifacts/` 中的实验证据。之后只要环境和源码路径未变，可去掉 `--fresh` 进行增量构建。
+`--fresh` 只重建 `build/tests` 的 CMake cache，不会删除 `build/artifacts/` 中的实验证据。
 
 运行全部测试：
 
@@ -39,7 +42,7 @@ cmake --build build/tests -j2
 ctest --test-dir build/tests --output-on-failure
 ```
 
-运行 HBF 读带宽实验：
+运行最大 HBF 读带宽实验（实现文件为 `tests/performance/test_hbf_max_read_bandwidth.cpp`）：
 
 ```bash
 ctest --test-dir build/tests \
@@ -47,11 +50,19 @@ ctest --test-dir build/tests \
   --verbose
 ```
 
-该测试覆盖16个Host Channel，每Channel拥有256个可并发Bank，共向4096个Bank各发出一个4 KiB读请求。运行时每2000个simulation cycles自动输出一次区间读写字节数和GB/s，无需从最终结果手工换算瞬时带宽。Conda是本项目推荐的默认构建与执行方式，也可按[`docs/实验与测试执行规范.md`](docs/实验与测试执行规范.md)形成正式E3/E4证据。
+该测试覆盖16个Host Channel，每Channel拥有256个可并发Bank，共向4096个Bank各发出一个4 KiB读请求。运行时每2000个simulation cycles自动输出一次区间读写字节数和GB/s，无需从最终结果手工换算瞬时带宽。
+
+完成一次构建后，也可以在仓库根目录直接使用快速命令：
+
+```bash
+make bandwidth
+```
+
+`make bandwidth` 只运行已经构建好的 `openhbx_hbf_max_read_bandwidth_test`，不会自动重新编译；首次运行或源码有变化时，先在仓库根目录执行 `CONDA_ENV="$CONDA_PREFIX" make build`。
 
 构建产物统一放在 `build/tests/`，不会写入测试源码目录 `tests/`。`build-host/` 不再作为常规构建目录。
 
-## 2. 使用 Docker 隔离构建（可选复现环境）
+## 2. 使用 Docker 构建和执行
 
 需要固定容器工具链时，首次构建开发镜像：
 
@@ -67,7 +78,7 @@ docker compose up -d dev
 
 ### 2.1 直接使用 Docker Compose
 
-这种方法不进入容器，适合日常开发和自动化。
+直接使用 Docker Compose 执行：
 
 #### 2.1.1 配置和编译
 
@@ -193,7 +204,7 @@ CTest还会把机器可读结果保存到 `build/artifacts/performance/EXP-PERF-
 
 ## 5. 使用短命令运行测试
 
-根目录 `Makefile` 默认调用LLMCompass仓库内`../../.conda-env`中的CMake和CTest，并在宿主机完成构建和执行。可用`CONDA_ENV=/path/to/env`覆盖环境路径；Docker仅作为第2节所述的可选固定工具链复现方式。
+根目录 `Makefile` 默认使用当前激活 Conda 环境中的 CMake 和 CTest；也可以通过 `CONDA_ENV=/path/to/env` 指定环境路径。
 
 ### 5.1 查看所有测试
 
