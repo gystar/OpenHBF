@@ -193,7 +193,7 @@ CTest还会把机器可读结果保存到 `build/artifacts/performance/EXP-PERF-
 
 ## 5. 使用短命令运行测试
 
-根目录 `Makefile` 对 Docker、CMake 和 CTest 做了简单封装。它没有建立另一套测试系统。
+根目录 `Makefile` 默认调用LLMCompass仓库内`../../.conda-env`中的CMake和CTest，并在宿主机完成构建和执行。可用`CONDA_ENV=/path/to/env`覆盖环境路径；Docker仅作为第2节所述的可选固定工具链复现方式。
 
 ### 5.1 查看所有测试
 
@@ -208,6 +208,14 @@ make list-tests
 ```bash
 make test-one TEST=openhbx_hbf_max_read_bandwidth_test
 ```
+
+最大读带宽实验也提供了更短的等价命令：
+
+```bash
+make bandwidth
+```
+
+该命令不重新配置或编译，直接运行已有的`openhbx_hbf_max_read_bandwidth_test`，输出聚合吞吐、理论上限利用率和延迟分位数。首次运行或修改源码后先执行一次`make build`。
 
 将 `TEST` 替换为 `make list-tests` 显示的任意名称即可。单项测试默认使用verbose输出，因此能看到成功实验的具体结果。
 
